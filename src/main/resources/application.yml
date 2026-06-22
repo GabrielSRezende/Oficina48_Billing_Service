@@ -13,10 +13,15 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-  kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
-    listener:
-      missing-topics-fatal: false
+  cloud:
+    aws:
+      region:
+        static: us-east-1
+      credentials:
+        access-key: ${AWS_ACCESS_KEY_ID:test}
+        secret-key: ${AWS_SECRET_ACCESS_KEY:test}
+      sqs:
+        endpoint: ${AWS_SQS_ENDPOINT:http://localhost:4566}
 
 management:
   endpoints:
@@ -29,13 +34,11 @@ management:
         enabled: true
 
 app:
-  kafka:
-    consumer:
-      group-id: ${KAFKA_CONSUMER_GROUP:oficina48-billing-service}
-    topics:
-      faturamento-solicitado: ${KAFKA_TOPIC_FATURAMENTO_SOLICITADO:faturamento-solicitado}
-      faturamento-concluido: ${KAFKA_TOPIC_FATURAMENTO_CONCLUIDO:faturamento-concluido}
-      faturamento-falhou: ${KAFKA_TOPIC_FATURAMENTO_FALHOU:faturamento-falhou}
+  sqs:
+    queues:
+      faturamento-solicitado: ${SQS_QUEUE_FATURAMENTO_SOLICITADO:faturamento-solicitado}
+      faturamento-concluido: ${SQS_QUEUE_FATURAMENTO_CONCLUIDO:faturamento-concluido}
+      faturamento-falhou: ${SQS_QUEUE_FATURAMENTO_FALHOU:faturamento-falhou}
   os-service:
     base-url: ${OS_SERVICE_BASE_URL:http://localhost:8081}
     callback-path: ${OS_SERVICE_CALLBACK_PATH:/api/ordens-servico/faturamento/resultado}
@@ -46,3 +49,11 @@ app:
       fixed-delay: ${SAGA_CALLBACK_RETRY_FIXED_DELAY:30000}
       initial-delay: ${SAGA_CALLBACK_RETRY_INITIAL_DELAY:10000}
       max-attempts: ${SAGA_CALLBACK_RETRY_MAX_ATTEMPTS:5}
+
+mercadopago:
+  access-key: ${MRCPAGO_ACCESS_TOKEN:APP_USR-3512033353737055-021910-7ddb91f975e88a9d11d069bb1f3ec85e-2361461819}
+  webhook-url: ${MRCPAGO_WEBHOOK_URL:https://sua-url-ngrok.ngrok-free.app/api/mercadopago/webhook}
+  public-key: ${MRCPAGO_PUBLIC_KEY:}
+  private-key: ${MRCPAGO_PRIVATE_KEY:}
+  client-secrets: ${MRCPAGO_CLIENT_SECRETS:dummy_secret}
+  enforce-signature: ${MRCPAGO_ENFORCE_SIGNATURE:false}

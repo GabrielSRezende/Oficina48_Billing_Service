@@ -1,13 +1,13 @@
-package br.com.oficina48.billingservice;
+package br.com.oficina48;
 
-import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @EnableScheduling
-@ConfigurationPropertiesScan("br.com.oficina48")
-@SpringBootApplication(scanBasePackages = "br.com.oficina48")
+@ConfigurationPropertiesScan
+@SpringBootApplication
 public class BillingServiceApplication {
 
     public static void main(String[] args) {

@@ -1,9 +1,13 @@
 spring:
-  kafka:
-    bootstrap-servers: localhost:9092
-    listener:
-      auto-startup: false
-      missing-topics-fatal: false
+  cloud:
+    aws:
+      region:
+        static: us-east-1
+      credentials:
+        access-key: test
+        secret-key: test
+      sqs:
+        endpoint: http://localhost:4566
   datasource:
     url: jdbc:h2:mem:oficina48_billing_test;DB_CLOSE_DELAY=-1
     username: sa
@@ -15,10 +19,8 @@ spring:
       ddl-auto: create-drop
 
 app:
-  kafka:
-    consumer:
-      group-id: oficina48-billing-service-test
-    topics:
+  sqs:
+    queues:
       faturamento-solicitado: faturamento-solicitado-test
       faturamento-concluido: faturamento-concluido-test
       faturamento-falhou: faturamento-falhou-test
@@ -32,3 +34,11 @@ app:
       fixed-delay: 30000
       initial-delay: 10000
       max-attempts: 3
+
+mercadopago:
+  access-key: dummy-access-key
+  webhook-url: http://localhost:8080/api/mercadopago/webhook
+  public-key: dummy-public-key
+  private-key: dummy-private-key
+  client-secrets: dummy-secret
+  enforce-signature: false
