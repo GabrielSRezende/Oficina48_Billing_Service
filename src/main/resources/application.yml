@@ -37,6 +37,7 @@ app:
   sqs:
     queues:
       faturamento-solicitado: ${SQS_QUEUE_FATURAMENTO_SOLICITADO:faturamento-solicitado}
+      faturamento-pendente: ${SQS_QUEUE_FATURAMENTO_PENDENTE:faturamento-pendente}
       faturamento-concluido: ${SQS_QUEUE_FATURAMENTO_CONCLUIDO:faturamento-concluido}
       faturamento-falhou: ${SQS_QUEUE_FATURAMENTO_FALHOU:faturamento-falhou}
   os-service:

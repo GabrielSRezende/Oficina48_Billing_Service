@@ -2,6 +2,7 @@ package br.com.oficina48.infrastructure.messaging.producer;
 
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoConcluidoEvent;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoFalhouEvent;
+import br.com.oficina48.infrastructure.messaging.event.FaturamentoPendenteEvent;
 import br.com.oficina48.infrastructure.properties.SqsProperties;
 import io.awspring.cloud.sqs.operations.SqsTemplate;
 import org.slf4j.Logger;
@@ -19,6 +20,12 @@ public class FaturamentoProducer {
     public FaturamentoProducer(SqsTemplate sqsTemplate, SqsProperties sqsProperties) {
         this.sqsTemplate = sqsTemplate;
         this.sqsProperties = sqsProperties;
+    }
+
+    public void enviarFaturamentoPendente(FaturamentoPendenteEvent evento) {
+        String queue = sqsProperties.queues().faturamentoPendente();
+        log.info("Enviando evento FaturamentoPendenteEvent para fila SQS: {}. Payload: {}", queue, evento);
+        sqsTemplate.send(queue, evento);
     }
 
     public void enviarFaturamentoConcluido(FaturamentoConcluidoEvent evento) {

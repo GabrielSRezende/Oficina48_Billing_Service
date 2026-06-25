@@ -22,6 +22,7 @@ app:
   sqs:
     queues:
       faturamento-solicitado: faturamento-solicitado-test
+      faturamento-pendente: faturamento-pendente-test
       faturamento-concluido: faturamento-concluido-test
       faturamento-falhou: faturamento-falhou-test
   os-service:

@@ -9,6 +9,7 @@ import br.com.oficina48.infrastructure.integration.mercadopago.dto.ChargeRespons
 import br.com.oficina48.infrastructure.integration.mercadopago.dto.ChargeStatus;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoConcluidoEvent;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoFalhouEvent;
+import br.com.oficina48.infrastructure.messaging.event.FaturamentoPendenteEvent;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoSolicitadoEvent;
 import br.com.oficina48.infrastructure.messaging.producer.FaturamentoProducer;
 import org.junit.jupiter.api.BeforeEach;
@@ -78,6 +79,9 @@ class FaturamentoUseCasesTest {
         assertEquals("mp-12345", saved.getPagamentoId());
         assertEquals("http://pagamento.link", saved.getPagamentoLink());
 
+        verify(faturamentoProducer).enviarFaturamentoPendente(new FaturamentoPendenteEvent(
+                1L, "mp-12345", "http://pagamento.link", BigDecimal.valueOf(150.00)
+        ));
         verify(faturamentoProducer, never()).enviarFaturamentoConcluido(any());
         verify(faturamentoProducer, never()).enviarFaturamentoFalhou(any());
     }

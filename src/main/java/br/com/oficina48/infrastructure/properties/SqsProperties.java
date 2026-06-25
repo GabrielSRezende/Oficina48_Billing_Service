@@ -8,6 +8,7 @@ public record SqsProperties(
 ) {
     public record Queues(
             String faturamentoSolicitado,
+            String faturamentoPendente,
             String faturamentoConcluido,
             String faturamentoFalhou
     ) {}

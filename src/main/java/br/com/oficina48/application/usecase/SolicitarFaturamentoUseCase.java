@@ -8,6 +8,7 @@ import br.com.oficina48.infrastructure.integration.mercadopago.dto.ChargeRequest
 import br.com.oficina48.infrastructure.integration.mercadopago.dto.ChargeResponse;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoConcluidoEvent;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoFalhouEvent;
+import br.com.oficina48.infrastructure.messaging.event.FaturamentoPendenteEvent;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoSolicitadoEvent;
 import br.com.oficina48.infrastructure.messaging.producer.FaturamentoProducer;
 import org.slf4j.Logger;
@@ -66,9 +67,9 @@ public class SolicitarFaturamentoUseCase {
             ChargeResponse chargeResponse = bankProvider.createPixCharge(chargeRequest);
 
             Faturamento faturamento = faturamentoExistente.orElseGet(() -> Faturamento.builder()
-                    .ordemServicoId(event.ordemServicoId())
-                    .valor(event.valor())
-                    .build());
+                     .ordemServicoId(event.ordemServicoId())
+                     .valor(event.valor())
+                     .build());
 
             faturamento.setStatus(FaturamentoStatus.PENDENTE);
             faturamento.setPagamentoId(chargeResponse.getTransactionId());
@@ -77,6 +78,13 @@ public class SolicitarFaturamentoUseCase {
             faturamentoRepository.save(faturamento);
             log.info("Faturamento registrado como PENDENTE para OS ID: {}. Link de Pagamento: {}", 
                     event.ordemServicoId(), chargeResponse.getPaymentLink());
+
+            faturamentoProducer.enviarFaturamentoPendente(new FaturamentoPendenteEvent(
+                    faturamento.getOrdemServicoId(),
+                    faturamento.getPagamentoId(),
+                    faturamento.getPagamentoLink(),
+                    faturamento.getValor()
+            ));
 
         } catch (Exception e) {
             log.error("Falha ao gerar cobrança no Mercado Pago para OS ID: {}. Registrando faturamento como FALHOU.", 
