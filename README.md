@@ -129,3 +129,57 @@ aws sqs purge-queue --endpoint-url http://localhost:4566 --queue-url http://sqs.
 # Limpar falhas
 aws sqs purge-queue --endpoint-url http://localhost:4566 --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/faturamento-falhou
 ```
+
+---
+
+## 🔄 Fluxos de Negócio e Integração
+
+O sistema se comunica e gerencia o faturamento através de 4 fluxos principais:
+
+### 1. Geração e Registro do Orçamento Solicitado
+* **Nome de Referência:** *Fluxo de Recebimento e Registro de Proposta de Orçamento*
+* **Descrição:** Inicialização e o registro de uma proposta de orçamento emitida pelo serviço de ordens de serviço (`OS SERVICE`) para processamento no microsserviço de cobrança (`BILLING SERVICE`).
+* **Sequência de Passos:**
+  1. O `OS SERVICE` gera um orçamento e publica uma mensagem de evento (`enviar-orcamento-solicitado`) na **FILA SQS**.
+  2. O `BILLING SERVICE` consome essa mensagem da fila de forma assíncrona.
+  3. O `BILLING SERVICE` processa as informações e realiza duas ações concorrentes/sequenciais:
+     * Persiste as informações do orçamento no banco de dados (**BD**) para controle interno.
+     * Gera um documento em formato de texto (**TXT (ORÇAMENTO)**) contendo os detalhes legíveis do orçamento.
+
+---
+
+### 2. Processamento de Decisão do Orçamento (Aprovação/Reprovação)
+* **Nome de Referência:** *Fluxo de Atualização de Status e Notificação de Parecer de Orçamento*
+* **Descrição:** Ocorre quando uma decisão de aprovação ou reprovação do orçamento é submetida diretamente ao serviço de cobrança, que então notifica o serviço de ordens de serviço.
+* **Sequência de Passos:**
+  1. Uma requisição externa contendo a decisão (**Requisição Aprovado/Reprovado**) é enviada diretamente ao endpoint do **BILLING SERVICE**.
+  2. O **BILLING SERVICE** atualiza o status daquele orçamento no banco de dados.
+  3. O **BILLING SERVICE** dispara um evento/notificação de retorno para o **OS SERVICE** informando a decisão:
+     * `aprovado-orcamento`: se o parecer for favorável.
+     * `reprovada-orcamento`: se o parecer for contrário.
+  4. O **OS SERVICE** recebe a atualização e altera o estado da Ordem de Serviço correspondente.
+
+---
+
+### 3. Solicitação de Faturamento e Geração de Meio de Pagamento
+* **Nome de Referência:** *Fluxo de Solicitação de Faturamento e Emissão de QR Code (Pix)*
+* **Descrição:** Trata da solicitação para início do faturamento de uma ordem de serviço aprovada, resultando na criação de uma cobrança externa e geração do código de pagamento.
+* **Sequência de Passos:**
+  1. O **OS SERVICE** envia um evento de solicitação de faturamento (`faturamento-solicitado`) indicando que a OS está pronta para cobrança.
+  2. O **BILLING SERVICE** consome o evento da fila SQS `faturamento-solicitado`.
+  3. O **BILLING SERVICE** integra-se com a API do gateway de pagamento (Mercado Pago Sandbox) para registrar a intenção de cobrança.
+  4. O **BILLING SERVICE** gera as credenciais de pagamento (como o Pix copy-and-paste ou dados do QR Code) e salva/disponibiliza essa representação em arquivo de texto (**TXT (QR CODE)**), mudando o status da transação para pendente.
+
+---
+
+### 4. Confirmação de Pagamento via Webhook (Conclusão)
+* **Nome de Referência:** *Fluxo de Notificação de Pagamento e Liquidação de Faturamento*
+* **Descrição:** Confirmação do pagamento pelo gateway externo (via webhook) e a notificação de sucesso ao serviço de ordens de serviço para finalização.
+* **Sequência de Passos:**
+  1. O gateway de pagamento externo envia uma notificação assíncrona (**Notificação via webhook**) informando que o pagamento foi processado.
+  2. O **BILLING SERVICE** recebe a notificação no endpoint de webhook.
+  3. O **BILLING SERVICE** busca os detalhes da transação junto à API do gateway para validar se o pagamento foi de fato aprovado.
+  4. Uma vez aprovado, o **BILLING SERVICE** altera o status da transação no banco de dados para concluído.
+  5. O **BILLING SERVICE** publica uma mensagem de faturamento concluído (`faturamento-concluido`) na fila correspondente.
+  6. O **OS SERVICE** consome essa mensagem e atualiza o estado final da Ordem de Serviço correspondente.
+
