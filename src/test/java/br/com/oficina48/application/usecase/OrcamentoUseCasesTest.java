@@ -6,6 +6,7 @@ import br.com.oficina48.domain.repository.OrcamentoRepository;
 import br.com.oficina48.infrastructure.messaging.event.OrcamentoAprovadoEvent;
 import br.com.oficina48.infrastructure.messaging.event.OrcamentoReprovadoEvent;
 import br.com.oficina48.infrastructure.messaging.event.OrcamentoSolicitadoEvent;
+import br.com.oficina48.application.service.DocumentoStorage;
 import br.com.oficina48.infrastructure.messaging.event.ItemOrcamentoEvent;
 import br.com.oficina48.infrastructure.messaging.producer.OrcamentoProducer;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,12 +34,15 @@ class OrcamentoUseCasesTest {
     @Mock
     private OrcamentoProducer orcamentoProducer;
 
+    @Mock
+    private DocumentoStorage documentoStorage;
+
     private SolicitarOrcamentoUseCase solicitarOrcamentoUseCase;
     private ProcessarDecisaoOrcamentoUseCase processarDecisaoOrcamentoUseCase;
 
     @BeforeEach
     void setUp() {
-        solicitarOrcamentoUseCase = new SolicitarOrcamentoUseCase(orcamentoRepository);
+        solicitarOrcamentoUseCase = new SolicitarOrcamentoUseCase(orcamentoRepository, documentoStorage);
         processarDecisaoOrcamentoUseCase = new ProcessarDecisaoOrcamentoUseCase(orcamentoRepository, orcamentoProducer);
     }
 
@@ -60,6 +64,7 @@ class OrcamentoUseCasesTest {
 
         ArgumentCaptor<Orcamento> captor = ArgumentCaptor.forClass(Orcamento.class);
         verify(orcamentoRepository).save(captor.capture());
+        verify(documentoStorage).salvar(eq("orcamentos"), eq("orcamento_OS_10.txt"), anyString());
 
         Orcamento saved = captor.getValue();
         assertEquals(10L, saved.getOrdemServicoId());

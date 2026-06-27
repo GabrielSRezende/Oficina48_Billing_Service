@@ -10,6 +10,7 @@ import br.com.oficina48.infrastructure.integration.mercadopago.dto.ChargeStatus;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoConcluidoEvent;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoFalhouEvent;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoPendenteEvent;
+import br.com.oficina48.application.service.DocumentoStorage;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoSolicitadoEvent;
 import br.com.oficina48.infrastructure.messaging.producer.FaturamentoProducer;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,13 +40,16 @@ class FaturamentoUseCasesTest {
     @Mock
     private FaturamentoProducer faturamentoProducer;
 
+    @Mock
+    private DocumentoStorage documentoStorage;
+
     private SolicitarFaturamentoUseCase solicitarUseCase;
     private ConfirmarPagamentoFaturamentoUseCase confirmarUseCase;
 
     @BeforeEach
     void setUp() {
-        solicitarUseCase = new SolicitarFaturamentoUseCase(faturamentoRepository, bankProvider, faturamentoProducer);
-        confirmarUseCase = new ConfirmarPagamentoFaturamentoUseCase(faturamentoRepository, bankProvider, faturamentoProducer);
+        solicitarUseCase = new SolicitarFaturamentoUseCase(faturamentoRepository, bankProvider, faturamentoProducer, documentoStorage);
+        confirmarUseCase = new ConfirmarPagamentoFaturamentoUseCase(faturamentoRepository, bankProvider, faturamentoProducer, documentoStorage);
     }
 
     @Test
@@ -71,6 +75,7 @@ class FaturamentoUseCasesTest {
 
         ArgumentCaptor<Faturamento> faturamentoCaptor = ArgumentCaptor.forClass(Faturamento.class);
         verify(faturamentoRepository).save(faturamentoCaptor.capture());
+        verify(documentoStorage).salvar(eq("links_pagamento"), eq("faturamento_OS_1.txt"), anyString());
 
         Faturamento saved = faturamentoCaptor.getValue();
         assertEquals(1L, saved.getOrdemServicoId());
@@ -162,6 +167,7 @@ class FaturamentoUseCasesTest {
 
         assertEquals(FaturamentoStatus.CONCLUIDO, faturamento.getStatus());
         verify(faturamentoRepository).save(faturamento);
+        verify(documentoStorage).salvar(eq("links_pagamento"), eq("recibo_OS_1.txt"), anyString());
         verify(faturamentoProducer).enviarFaturamentoConcluido(new FaturamentoConcluidoEvent(
                 1L, "mp-12345", BigDecimal.valueOf(150.00)
         ));

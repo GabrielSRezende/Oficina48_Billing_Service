@@ -7,6 +7,7 @@ import br.com.oficina48.infrastructure.integration.mercadopago.BankProvider;
 import br.com.oficina48.infrastructure.integration.mercadopago.dto.ChargeStatus;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoConcluidoEvent;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoFalhouEvent;
+import br.com.oficina48.application.service.DocumentoStorage;
 import br.com.oficina48.infrastructure.messaging.producer.FaturamentoProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,13 +24,16 @@ public class ConfirmarPagamentoFaturamentoUseCase {
     private final FaturamentoRepository faturamentoRepository;
     private final BankProvider bankProvider;
     private final FaturamentoProducer faturamentoProducer;
+    private final DocumentoStorage documentoStorage;
 
     public ConfirmarPagamentoFaturamentoUseCase(FaturamentoRepository faturamentoRepository,
                                                 BankProvider bankProvider,
-                                                FaturamentoProducer faturamentoProducer) {
+                                                FaturamentoProducer faturamentoProducer,
+                                                DocumentoStorage documentoStorage) {
         this.faturamentoRepository = faturamentoRepository;
         this.bankProvider = bankProvider;
         this.faturamentoProducer = faturamentoProducer;
+        this.documentoStorage = documentoStorage;
     }
 
     @Transactional
@@ -69,6 +73,10 @@ public class ConfirmarPagamentoFaturamentoUseCase {
             faturamento.setPagamentoId(paymentId);
             faturamentoRepository.save(faturamento);
 
+            // Gera e salva o recibo físico de pagamento concluído
+            String recibo = gerarReciboFaturamento(faturamento);
+            documentoStorage.salvar("links_pagamento", "recibo_OS_" + faturamento.getOrdemServicoId() + ".txt", recibo);
+
             faturamentoProducer.enviarFaturamentoConcluido(new FaturamentoConcluidoEvent(
                     faturamento.getOrdemServicoId(),
                     paymentId,
@@ -95,5 +103,22 @@ public class ConfirmarPagamentoFaturamentoUseCase {
             log.info("Pagamento para a OS ID: {} ainda está pendente (status: {}). Nenhuma ação necessária.", 
                     faturamento.getOrdemServicoId(), chargeStatus.getStatus());
         }
+    }
+
+    private String gerarReciboFaturamento(Faturamento faturamento) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("========================================\n");
+        sb.append("          RECIBO DE PAGAMENTO           \n");
+        sb.append("========================================\n");
+        sb.append(String.format("OS ID: %d\n", faturamento.getOrdemServicoId()));
+        sb.append(String.format("Valor Pago: R$ %s\n", faturamento.getValor()));
+        sb.append("Status: CONCLUÍDO\n");
+        sb.append("----------------------------------------\n");
+        sb.append(String.format("ID do Pagamento (Mercado Pago): %s\n", faturamento.getPagamentoId()));
+        sb.append(String.format("Link de Checkout original: %s\n", faturamento.getPagamentoLink()));
+        sb.append("----------------------------------------\n");
+        sb.append(String.format("Data da Confirmação: %s\n", java.time.LocalDateTime.now()));
+        sb.append("========================================\n");
+        return sb.toString();
     }
 }

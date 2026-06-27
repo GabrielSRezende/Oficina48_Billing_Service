@@ -20,6 +20,8 @@ spring:
 
 app:
   base-url: oficina48_billing.com.br
+  documentos:
+    path: target/documentos-test
   sqs:
     queues:
       faturamento-solicitado: faturamento-solicitado-test
@@ -30,7 +32,7 @@ app:
       orcamento-aprovado: orcamento-aprovado-test
       orcamento-reprovado: orcamento-reprovado-test
   os-service:
-    base-url: http://localhost:8081
+    base-url: http://localhost:8080
     callback-path: /api/ordens-servico/faturamento/resultado
     connect-timeout: 2s
     read-timeout: 5s
@@ -42,7 +44,7 @@ app:
 
 mercadopago:
   access-key: dummy-access-key
-  webhook-url: http://localhost:8080/api/mercadopago/webhook
+  webhook-url: http://localhost:8082/api/mercadopago/webhook
   public-key: dummy-public-key
   private-key: dummy-private-key
   client-secrets: dummy-secret

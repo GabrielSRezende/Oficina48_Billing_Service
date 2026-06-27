@@ -9,6 +9,7 @@ import br.com.oficina48.infrastructure.integration.mercadopago.dto.ChargeRespons
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoConcluidoEvent;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoFalhouEvent;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoPendenteEvent;
+import br.com.oficina48.application.service.DocumentoStorage;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoSolicitadoEvent;
 import br.com.oficina48.infrastructure.messaging.producer.FaturamentoProducer;
 import org.slf4j.Logger;
@@ -26,13 +27,16 @@ public class SolicitarFaturamentoUseCase {
     private final FaturamentoRepository faturamentoRepository;
     private final BankProvider bankProvider;
     private final FaturamentoProducer faturamentoProducer;
+    private final DocumentoStorage documentoStorage;
 
     public SolicitarFaturamentoUseCase(FaturamentoRepository faturamentoRepository,
                                        BankProvider bankProvider,
-                                       FaturamentoProducer faturamentoProducer) {
+                                       FaturamentoProducer faturamentoProducer,
+                                       DocumentoStorage documentoStorage) {
         this.faturamentoRepository = faturamentoRepository;
         this.bankProvider = bankProvider;
         this.faturamentoProducer = faturamentoProducer;
+        this.documentoStorage = documentoStorage;
     }
 
     @Transactional
@@ -79,6 +83,10 @@ public class SolicitarFaturamentoUseCase {
             log.info("Faturamento registrado como PENDENTE para OS ID: {}. Link de Pagamento: {}", 
                     event.ordemServicoId(), chargeResponse.getPaymentLink());
 
+            // Gera e salva a solicitação de faturamento física
+            String relatorio = gerarDocumentoFaturamento(event, faturamento);
+            documentoStorage.salvar("links_pagamento", "faturamento_OS_" + event.ordemServicoId() + ".txt", relatorio);
+
             faturamentoProducer.enviarFaturamentoPendente(new FaturamentoPendenteEvent(
                     faturamento.getOrdemServicoId(),
                     faturamento.getPagamentoId(),
@@ -104,5 +112,25 @@ public class SolicitarFaturamentoUseCase {
                     event.valor()
             ));
         }
+    }
+
+    private String gerarDocumentoFaturamento(FaturamentoSolicitadoEvent event, Faturamento faturamento) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("========================================\n");
+        sb.append("         SOLICITAÇÃO DE PAGAMENTO       \n");
+        sb.append("========================================\n");
+        sb.append(String.format("OS ID: %d\n", event.ordemServicoId()));
+        sb.append(String.format("Cliente: %s\n", event.clienteNome()));
+        sb.append(String.format("E-mail: %s\n", event.clienteEmail()));
+        sb.append(String.format("CPF: %s\n", event.clienteCpf()));
+        sb.append(String.format("Valor Total: R$ %s\n", event.valor()));
+        sb.append("Status: PENDENTE\n");
+        sb.append("----------------------------------------\n");
+        sb.append(String.format("ID do Pagamento (Mercado Pago): %s\n", faturamento.getPagamentoId()));
+        sb.append(String.format("Link de Pagamento: %s\n", faturamento.getPagamentoLink()));
+        sb.append("----------------------------------------\n");
+        sb.append(String.format("Data de Emissão: %s\n", java.time.LocalDateTime.now()));
+        sb.append("========================================\n");
+        return sb.toString();
     }
 }

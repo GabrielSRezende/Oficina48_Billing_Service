@@ -1,3 +1,6 @@
+server:
+  port: ${SERVER_PORT:8082}
+
 spring:
   application:
     name: oficina48-billing-service
@@ -35,6 +38,8 @@ management:
 
 app:
   base-url: ${BILLING_BASE_URL:oficina48_billing.com.br}
+  documentos:
+    path: ${BILLING_DOCUMENTOS_PATH:./documentos}
   sqs:
     queues:
       faturamento-solicitado: ${SQS_QUEUE_FATURAMENTO_SOLICITADO:faturamento-solicitado}
@@ -45,7 +50,7 @@ app:
       orcamento-aprovado: ${SQS_QUEUE_ORCAMENTO_APROVADO:orcamento-aprovado}
       orcamento-reprovado: ${SQS_QUEUE_ORCAMENTO_REPROVADO:orcamento-reprovado}
   os-service:
-    base-url: ${OS_SERVICE_BASE_URL:http://localhost:8081}
+    base-url: ${OS_SERVICE_BASE_URL:http://localhost:8080}
     callback-path: ${OS_SERVICE_CALLBACK_PATH:/api/ordens-servico/faturamento/resultado}
     connect-timeout: ${OS_SERVICE_CONNECT_TIMEOUT:2s}
     read-timeout: ${OS_SERVICE_READ_TIMEOUT:5s}

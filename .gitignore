@@ -63,3 +63,6 @@ fluxos.png
 .env
 .env.*
 !*.example
+
+# Documentos gerados localmente
+/documentos/
