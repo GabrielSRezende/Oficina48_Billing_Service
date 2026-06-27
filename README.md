@@ -140,7 +140,7 @@ O sistema se comunica e gerencia o faturamento através de 4 fluxos principais:
 * **Nome de Referência:** *Fluxo de Recebimento e Registro de Proposta de Orçamento*
 * **Descrição:** Inicialização e o registro de uma proposta de orçamento emitida pelo serviço de ordens de serviço (`OS SERVICE`) para processamento no microsserviço de cobrança (`BILLING SERVICE`).
 * **Sequência de Passos:**
-  1. O `OS SERVICE` gera um orçamento e publica uma mensagem de evento (`enviar-orcamento-solicitado`) na **FILA SQS**.
+  1. O `OS SERVICE` gera um orçamento e publica o evento de **Solicitar Orçamento** (mensagem `enviar-orcamento-solicitado`) na **FILA SQS**.
   2. O `BILLING SERVICE` consome essa mensagem da fila de forma assíncrona.
   3. O `BILLING SERVICE` processa as informações e realiza duas ações concorrentes/sequenciais:
      * Persiste as informações do orçamento no banco de dados (**BD**) para controle interno.
@@ -152,11 +152,11 @@ O sistema se comunica e gerencia o faturamento através de 4 fluxos principais:
 * **Nome de Referência:** *Fluxo de Atualização de Status e Notificação de Parecer de Orçamento*
 * **Descrição:** Ocorre quando uma decisão de aprovação ou reprovação do orçamento é submetida diretamente ao serviço de cobrança, que então notifica o serviço de ordens de serviço.
 * **Sequência de Passos:**
-  1. Uma requisição externa contendo a decisão (**Requisição Aprovado/Reprovado**) é enviada diretamente ao endpoint do **BILLING SERVICE**.
+  1. Uma requisição externa contendo a decisão (**Requisição Aprovado/Reprovado**) é enviada diretamente ao endpoint do **BILLING SERVICE** (ex: o cliente realiza a aprovação/reprovação).
   2. O **BILLING SERVICE** atualiza o status daquele orçamento no banco de dados.
-  3. O **BILLING SERVICE** dispara um evento/notificação de retorno para o **OS SERVICE** informando a decisão:
-     * `aprovado-orcamento`: se o parecer for favorável.
-     * `reprovada-orcamento`: se o parecer for contrário.
+  3. O **BILLING SERVICE** dispara um evento de retorno para o **OS SERVICE** informando a decisão:
+     * **Orçamento Aprovado** (evento `orcamento-aprovado`): se o parecer for favorável.
+     * **Orçamento Reprovado** (evento `orcamento-reprovado`): se o parecer for contrário.
   4. O **OS SERVICE** recebe a atualização e altera o estado da Ordem de Serviço correspondente.
 
 ---
@@ -165,10 +165,11 @@ O sistema se comunica e gerencia o faturamento através de 4 fluxos principais:
 * **Nome de Referência:** *Fluxo de Solicitação de Faturamento e Emissão de QR Code (Pix)*
 * **Descrição:** Trata da solicitação para início do faturamento de uma ordem de serviço aprovada, resultando na criação de uma cobrança externa e geração do código de pagamento.
 * **Sequência de Passos:**
-  1. O **OS SERVICE** envia um evento de solicitação de faturamento (`faturamento-solicitado`) indicando que a OS está pronta para cobrança.
+  1. O **OS SERVICE** envia o evento de **Solicitar Faturamento** (mensagem `faturamento-solicitado`) indicando que a OS está pronta para cobrança.
   2. O **BILLING SERVICE** consome o evento da fila SQS `faturamento-solicitado`.
   3. O **BILLING SERVICE** integra-se com a API do gateway de pagamento (Mercado Pago Sandbox) para registrar a intenção de cobrança.
   4. O **BILLING SERVICE** gera as credenciais de pagamento (como o Pix copy-and-paste ou dados do QR Code) e salva/disponibiliza essa representação em arquivo de texto (**TXT (QR CODE)**), mudando o status da transação para pendente.
+  5. O **BILLING SERVICE** envia o evento de **Faturamento Pendente** (mensagem `faturamento-pendente`) contendo o link de checkout/Pix para que o sistema possa prosseguir com a disponibilização da cobrança.
 
 ---
 
@@ -180,33 +181,50 @@ O sistema se comunica e gerencia o faturamento através de 4 fluxos principais:
   2. O **BILLING SERVICE** recebe a notificação no endpoint de webhook.
   3. O **BILLING SERVICE** busca os detalhes da transação junto à API do gateway para validar se o pagamento foi de fato aprovado.
   4. Uma vez aprovado, o **BILLING SERVICE** altera o status da transação no banco de dados para concluído.
-  5. O **BILLING SERVICE** publica uma mensagem de faturamento concluído (`faturamento-concluido`) na fila correspondente.
+  5. O **BILLING SERVICE** publica o evento de **Faturamento Concluído** (mensagem `faturamento-concluido`) na fila correspondente (ou **Faturamento Falhou** via `faturamento-falhou` se o pagamento for rejeitado).
   6. O **OS SERVICE** consome essa mensagem e atualiza o estado final da Ordem de Serviço correspondente.
+
 
 ### Fluxo de Orquestração da Ordem de Serviço (Saga Pattern)
 
-O diagrama abaixo ilustra o ciclo de vida de uma ordem de serviço e a interação entre os microsserviços, utilizando o `OS SERVICE` como o orquestrador central do fluxo.
+O diagrama abaixo ilustra o ciclo de vida de uma ordem de serviço e a interação entre os microsserviços, utilizando o `OS SERVICE` como o orquestrador central do fluxo, incluindo a participação do cliente e do gateway de pagamento de forma assíncrona.
 
 ```mermaid
 sequenceDiagram
     autonumber
+    actor Cliente
     participant OS as OS SERVICE
     participant EX as EXECUTION SERVICE
     participant BL as BILLING SERVICE
+    participant GW as GATEWAY (Mercado Pago)
 
     OS->>EX: Criar Ordem de serviço
     OS->>EX: Solicitar Diagnóstico
     EX-->>OS: Diagnóstico Concluído
     OS->>BL: Solicitar Orçamento
     
+    Cliente->>BL: Enviar Decisão (Aprovado / Reprovado)
+    
     alt Orçamento Aprovado
         BL-->>OS: Orçamento Aprovado
         OS->>EX: Enviar para Em execução
         EX-->>OS: Execução Concluída
         OS->>BL: Solicitar Faturamento
+        
+        BL->>GW: Criar Cobrança (Pix)
+        GW-->>BL: Cobrança Criada (QR Code)
+        BL-->>OS: Faturamento Pendente
+        
+        Cliente->>GW: Efetuar Pagamento
+        
+        GW->>BL: Notificação Webhook (Pagamento)
+        BL->>GW: Validar status do pagamento
+        GW-->>BL: Status: Aprovado
+        
         BL-->>OS: Faturamento Concluído
         OS->>EX: Finalizar Ordem de serviço
     else Orçamento Reprovado
         BL-->>OS: Orçamento Reprovado
         Note over OS,BL: O Orquestrador interrompe o fluxo ou dispara a compensação.
     end
+```
