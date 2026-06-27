@@ -38,8 +38,7 @@ docker compose up -d
 Envie o evento de solicitação de faturamento para a fila `faturamento-solicitado` para que o serviço processe e gere a cobrança no Mercado Pago:
 
 ```bash
-aws sqs send-message \
-  --endpoint-url http://localhost:4566 \
+docker exec -it oficina48-localstack awslocal sqs send-message \
   --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/faturamento-solicitado \
   --message-body '{
     "ordemServicoId": 12345,
@@ -55,8 +54,7 @@ aws sqs send-message \
 Consuma a mensagem da fila `faturamento-pendente` para obter o link do Pix e o ID do pagamento gerado:
 
 ```bash
-aws sqs receive-message \
-  --endpoint-url http://localhost:4566 \
+docker exec -it oficina48-localstack awslocal sqs receive-message \
   --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/faturamento-pendente
 ```
 > 💡 **Nota:** O corpo da mensagem conterá o `pagamentoLink` (checkout do Mercado Pago) e o `pagamentoId` (ID da preferência). Copie o `pagamentoId` para usar nos passos abaixo.
@@ -65,49 +63,169 @@ aws sqs receive-message \
 
 ### 4. Simular Status de Pagamento (Integração Webhook)
 
+> [!IMPORTANT]
+> **Como funciona o Webhook do Mercado Pago:**
+> Por questões de segurança, o Mercado Pago **não trafega** o status do pagamento (ex: `approved`, `rejected`) diretamente no payload do webhook. O webhook contém apenas o ID do pagamento em `data.id`.
+> Ao receber a notificação, o **BILLING SERVICE** realiza uma chamada de retorno (back-channel) à API do Mercado Pago para consultar o status real da transação.
+> 
+> Para realizar os testes locais:
+> * **Cenário de Sucesso:** Realize o pagamento de teste no link Sandbox gerado no passo 3 (usando saldo/cartão de teste de aprovação) e envie o webhook com o ID obtido.
+> * **Cenário de Erro:** Realize o pagamento de teste simulando falha (ex: sem saldo ou cartão recusado) e envie o webhook com o ID obtido.
+
+#### 💳 Cartões de Teste e Status (Sandbox)
+
+Utilize os dados abaixo no checkout do Mercado Pago em modo Sandbox para simular os diferentes comportamentos de pagamento:
+
+##### Cartões de Teste
+
+<table style="border-collapse: collapse; width: 100%; border: 1px solid #dcdcdc; text-align: left; margin: 15px 0;">
+  <thead>
+    <tr style="background-color: #f8f9fa; border-bottom: 2px solid #dcdcdc;">
+      <th style="padding: 10px; border: 1px solid #dcdcdc; font-weight: bold;">Cartão</th>
+      <th style="padding: 10px; border: 1px solid #dcdcdc; font-weight: bold;">Número</th>
+      <th style="padding: 10px; border: 1px solid #dcdcdc; font-weight: bold;">Código de segurança</th>
+      <th style="padding: 10px; border: 1px solid #dcdcdc; font-weight: bold;">Data de validade</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;">Mastercard</td>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;"><code>5031 4332 1540 6351</code></td>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;"><code>123</code></td>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;"><code>11/30</code></td>
+    </tr>
+    <tr>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;">Visa</td>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;"><code>4235 6477 2802 5682</code></td>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;"><code>123</code></td>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;"><code>11/30</code></td>
+    </tr>
+    <tr>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;">American Express</td>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;"><code>3753 651535 56885</code></td>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;"><code>1234</code></td>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;"><code>11/30</code></td>
+    </tr>
+    <tr>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;">Elo Debito</td>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;"><code>5067 7667 8388 8311</code></td>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;"><code>123</code></td>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;"><code>11/30</code></td>
+    </tr>
+  </tbody>
+</table>
+
+##### Simulação de Status por Nome do Titular (na Sandbox)
+
+Preencha o nome do titular no formulário do cartão usando o status de pagamento abaixo para forçar o comportamento correspondente:
+
+<table style="border-collapse: collapse; width: 100%; border: 1px solid #dcdcdc; text-align: left; margin: 15px 0;">
+  <thead>
+    <tr style="background-color: #f8f9fa; border-bottom: 2px solid #dcdcdc;">
+      <th style="padding: 10px; border: 1px solid #dcdcdc; font-weight: bold;">Status de pagamento</th>
+      <th style="padding: 10px; border: 1px solid #dcdcdc; font-weight: bold;">Descrição</th>
+      <th style="padding: 10px; border: 1px solid #dcdcdc; font-weight: bold;">Documento de identidade</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;"><b>APRO</b></td>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;">Pagamento aprovado</td>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;">(CPF) <code>12345678909</code></td>
+    </tr>
+    <tr>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;"><b>OTHE</b></td>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;">Recusado por erro geral</td>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;">(CPF) <code>12345678909</code></td>
+    </tr>
+    <tr>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;"><b>CONT</b></td>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;">Pagamento pendente</td>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;">-</td>
+    </tr>
+    <tr>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;"><b>CALL</b></td>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;">Recusado com validação para autorizar</td>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;">-</td>
+    </tr>
+    <tr>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;"><b>FUND</b></td>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;">Recusado por quantia insuficiente</td>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;">-</td>
+    </tr>
+    <tr>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;"><b>SECU</b></td>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;">Recusado por código de segurança inválido</td>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;">-</td>
+    </tr>
+    <tr>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;"><b>EXPI</b></td>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;">Recusado por problema com a data de vencimento</td>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;">-</td>
+    </tr>
+    <tr>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;"><b>FORM</b></td>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;">Recusado por erro no formulário</td>
+      <td style="padding: 10px; border: 1px solid #dcdcdc;">-</td>
+    </tr>
+  </tbody>
+</table>
+
+---
+
 #### Cenário A: Pagamento Aprovado (Sucesso)
 1. Efetue o pagamento acessando o link do Mercado Pago em modo Sandbox com cartões de teste de sucesso.
-2. Dispare a notificação do webhook do Mercado Pago para o microsserviço:
+2. Dispare a notificação do webhook do Mercado Pago simulando a **aprovação** do pagamento (utilizando o ID do pagamento aprovado):
 
 ```bash
-curl -X POST http://localhost:8080/mercadopago/webhook \
+curl -X POST http://localhost:8082/mercadopago/webhook \
   -H "Content-Type: application/json" \
   -d '{
-    "type": "payment",
+    "action": "payment.created",
+    "api_version": "v1",
     "data": {
-      "id": "<PAGAMENTO_ID_OBTIDO_NO_PASSO_3>"
-    }
+      "id": "<PAGAMENTO_ID_APROVADO_NO_SANDBOX>"
+    },
+    "date_created": "2026-06-27T18:15:00Z",
+    "id": 987654321,
+    "live_mode": true,
+    "type": "payment",
+    "user_id": "12345678"
   }'
 ```
 
 3. Verifique o disparo do evento na fila `faturamento-concluido`:
 
 ```bash
-aws sqs receive-message \
-  --endpoint-url http://localhost:4566 \
+docker exec -it oficina48-localstack awslocal sqs receive-message \
   --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/faturamento-concluido
 ```
 
 #### Cenário B: Pagamento Recusado (Falha)
 1. Efetue o pagamento no link gerado usando cartões de teste de erro do Mercado Pago (ex: sem saldo).
-2. Chame o webhook:
+2. Chame o webhook simulando a **recusa** do pagamento (utilizando o ID do pagamento recusado):
 
 ```bash
-curl -X POST http://localhost:8080/mercadopago/webhook \
+curl -X POST http://localhost:8082/mercadopago/webhook \
   -H "Content-Type: application/json" \
   -d '{
-    "type": "payment",
+    "action": "payment.created",
+    "api_version": "v1",
     "data": {
-      "id": "<PAGAMENTO_ID_OBTIDO_NO_PASSO_3>"
-    }
+      "id": "<PAGAMENTO_ID_RECUSADO_NO_SANDBOX>"
+    },
+    "date_created": "2026-06-27T18:15:00Z",
+    "id": 987654321,
+    "live_mode": true,
+    "type": "payment",
+    "user_id": "12345678"
   }'
 ```
 
 3. Verifique o disparo do evento na fila `faturamento-falhou`:
 
 ```bash
-aws sqs receive-message \
-  --endpoint-url http://localhost:4566 \
+docker exec -it oficina48-localstack awslocal sqs receive-message \
   --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/faturamento-falhou
 ```
 
@@ -118,16 +236,16 @@ Para limpar as mensagens e reiniciar os cenários de testes locais sem interfer�
 
 ```bash
 # Limpar solicitações
-aws sqs purge-queue --endpoint-url http://localhost:4566 --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/faturamento-solicitado
+docker exec -it oficina48-localstack awslocal sqs purge-queue --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/faturamento-solicitado
 
 # Limpar pendentes
-aws sqs purge-queue --endpoint-url http://localhost:4566 --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/faturamento-pendente
+docker exec -it oficina48-localstack awslocal sqs purge-queue --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/faturamento-pendente
 
 # Limpar concluídos
-aws sqs purge-queue --endpoint-url http://localhost:4566 --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/faturamento-concluido
+docker exec -it oficina48-localstack awslocal sqs purge-queue --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/faturamento-concluido
 
 # Limpar falhas
-aws sqs purge-queue --endpoint-url http://localhost:4566 --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/faturamento-falhou
+docker exec -it oficina48-localstack awslocal sqs purge-queue --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/faturamento-falhou
 ```
 
 ---
