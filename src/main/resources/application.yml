@@ -34,6 +34,7 @@ management:
         enabled: true
 
 app:
+  base-url: ${BILLING_BASE_URL:oficina48_billing.com.br}
   sqs:
     queues:
       faturamento-solicitado: ${SQS_QUEUE_FATURAMENTO_SOLICITADO:faturamento-solicitado}
@@ -54,8 +55,8 @@ app:
       initial-delay: ${SAGA_CALLBACK_RETRY_INITIAL_DELAY:10000}
       max-attempts: ${SAGA_CALLBACK_RETRY_MAX_ATTEMPTS:5}
 
-mercadopago:
-  access-key: ${MRCPAGO_ACCESS_TOKEN:APP_USR-3512033353737055-021910-7ddb91f975e88a9d11d069bb1f3ec85e-2361461819}
+mercadopago:                         
+  access-key: ${MRCPAGO_ACCESS_TOKEN:}
   webhook-url: ${MRCPAGO_WEBHOOK_URL:https://sua-url-ngrok.ngrok-free.app/api/mercadopago/webhook}
   public-key: ${MRCPAGO_PUBLIC_KEY:}
   private-key: ${MRCPAGO_PRIVATE_KEY:}

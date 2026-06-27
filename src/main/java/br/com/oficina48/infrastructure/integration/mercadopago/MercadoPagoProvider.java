@@ -37,6 +37,9 @@ public class MercadoPagoProvider implements BankProvider {
     @Value("${mercadopago.webhook-url}")
     private String notificationUrl;
 
+    @Value("${app.base-url}")
+    private String baseUrl;
+
     @Override
     public String getProviderName() {
         return "MRCPAGO";
@@ -59,12 +62,25 @@ public class MercadoPagoProvider implements BankProvider {
                     .currencyId("BRL")
                     .build();
 
+            String formattedBaseUrl = baseUrl;
+            if (!formattedBaseUrl.startsWith("http://") && !formattedBaseUrl.startsWith("https://")) {
+                formattedBaseUrl = "https://" + formattedBaseUrl;
+            }
+
+            PreferenceBackUrlsRequest backUrls = PreferenceBackUrlsRequest.builder()
+                    .success(formattedBaseUrl + "/sucesso")
+                    .failure(formattedBaseUrl + "/falha")
+                    .pending(formattedBaseUrl + "/pendente")
+                    .build();
+
             PreferenceRequest preferenceRequest = PreferenceRequest.builder()
                     .items(Arrays.asList(item))
                     .payer(PreferencePayerRequest.builder()
                             .email(request.getCustomerEmail())
                             .name(request.getCustomerName())
                             .build())
+                    .backUrls(backUrls)
+                    .autoReturn("approved")
                     .notificationUrl(notificationUrl)
                     .externalReference(request.getExternalReference())
                     .build();

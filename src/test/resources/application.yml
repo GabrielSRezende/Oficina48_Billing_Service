@@ -19,6 +19,7 @@ spring:
       ddl-auto: create-drop
 
 app:
+  base-url: oficina48_billing.com.br
   sqs:
     queues:
       faturamento-solicitado: faturamento-solicitado-test

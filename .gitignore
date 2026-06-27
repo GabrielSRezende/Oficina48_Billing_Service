@@ -58,3 +58,8 @@ nbdist/
 .DS_Store
 Thumbs.db
 fluxos.png
+
+# Local Environment Variables
+.env
+.env.*
+!*.example
