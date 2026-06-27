@@ -40,6 +40,9 @@ app:
       faturamento-pendente: ${SQS_QUEUE_FATURAMENTO_PENDENTE:faturamento-pendente}
       faturamento-concluido: ${SQS_QUEUE_FATURAMENTO_CONCLUIDO:faturamento-concluido}
       faturamento-falhou: ${SQS_QUEUE_FATURAMENTO_FALHOU:faturamento-falhou}
+      orcamento-solicitado: ${SQS_QUEUE_ORCAMENTO_SOLICITADO:orcamento-solicitado}
+      orcamento-aprovado: ${SQS_QUEUE_ORCAMENTO_APROVADO:orcamento-aprovado}
+      orcamento-reprovado: ${SQS_QUEUE_ORCAMENTO_REPROVADO:orcamento-reprovado}
   os-service:
     base-url: ${OS_SERVICE_BASE_URL:http://localhost:8081}
     callback-path: ${OS_SERVICE_CALLBACK_PATH:/api/ordens-servico/faturamento/resultado}

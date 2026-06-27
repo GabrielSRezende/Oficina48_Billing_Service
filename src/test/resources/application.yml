@@ -25,6 +25,9 @@ app:
       faturamento-pendente: faturamento-pendente-test
       faturamento-concluido: faturamento-concluido-test
       faturamento-falhou: faturamento-falhou-test
+      orcamento-solicitado: orcamento-solicitado-test
+      orcamento-aprovado: orcamento-aprovado-test
+      orcamento-reprovado: orcamento-reprovado-test
   os-service:
     base-url: http://localhost:8081
     callback-path: /api/ordens-servico/faturamento/resultado

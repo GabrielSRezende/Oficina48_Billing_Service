@@ -10,6 +10,9 @@ public record SqsProperties(
             String faturamentoSolicitado,
             String faturamentoPendente,
             String faturamentoConcluido,
-            String faturamentoFalhou
+            String faturamentoFalhou,
+            String orcamentoSolicitado,
+            String orcamentoAprovado,
+            String orcamentoReprovado
     ) {}
 }
