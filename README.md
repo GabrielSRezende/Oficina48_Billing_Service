@@ -183,3 +183,30 @@ O sistema se comunica e gerencia o faturamento através de 4 fluxos principais:
   5. O **BILLING SERVICE** publica uma mensagem de faturamento concluído (`faturamento-concluido`) na fila correspondente.
   6. O **OS SERVICE** consome essa mensagem e atualiza o estado final da Ordem de Serviço correspondente.
 
+### Fluxo de Orquestração da Ordem de Serviço (Saga Pattern)
+
+O diagrama abaixo ilustra o ciclo de vida de uma ordem de serviço e a interação entre os microsserviços, utilizando o `OS SERVICE` como o orquestrador central do fluxo.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant OS as OS SERVICE
+    participant EX as EXECUTION SERVICE
+    participant BL as BILLING SERVICE
+
+    OS->>EX: Criar Ordem de serviço
+    OS->>EX: Solicitar Diagnóstico
+    EX-->>OS: Diagnóstico Concluído
+    OS->>BL: Solicitar Orçamento
+    
+    alt Orçamento Aprovado
+        BL-->>OS: Orçamento Aprovado
+        OS->>EX: Enviar para Em execução
+        EX-->>OS: Execução Concluída
+        OS->>BL: Solicitar Faturamento
+        BL-->>OS: Faturamento Concluído
+        OS->>EX: Finalizar Ordem de serviço
+    else Orçamento Reprovado
+        BL-->>OS: Orçamento Reprovado
+        Note over OS,BL: O Orquestrador interrompe o fluxo ou dispara a compensação.
+    end
