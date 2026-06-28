@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: billing-service-config
+
+data:
+  APP_ENV: "k8s"
+  SPRING_PROFILES_ACTIVE: "prod"
+
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://${RDS_ENDPOINT}:5432/oficina48_billing"
+  SPRING_DATASOURCE_USERNAME: "oficina48"
+
+  SQS_ENDPOINT: "${SQS_ENDPOINT}"

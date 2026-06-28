@@ -1,0 +1,20 @@
+common: &default_settings
+  license_key: '${NEW_RELIC_LICENSE_KEY}'
+  app_name: oficina48-billing-service
+  distributed_tracing:
+    enabled: true
+  transaction_tracer:
+    enabled: true
+  error_collector:
+    enabled: true
+  browser_monitoring:
+    auto_instrument: false
+  application_logging:
+    enabled: true
+    forwarding:
+      enabled: false
+    local_decorating:
+      enabled: false
+
+production:
+  <<: *default_settings

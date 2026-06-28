@@ -5,7 +5,7 @@ spring:
   application:
     name: oficina48-billing-service
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/oficina48_billing}
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/oficina48_billing}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
@@ -67,3 +67,7 @@ mercadopago:
   private-key: ${MRCPAGO_PRIVATE_KEY:}
   client-secrets: ${MRCPAGO_CLIENT_SECRETS:dummy_secret}
   enforce-signature: ${MRCPAGO_ENFORCE_SIGNATURE:false}
+
+logging:
+  level:
+    org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping: TRACE

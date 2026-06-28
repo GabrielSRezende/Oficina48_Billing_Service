@@ -1,0 +1,47 @@
+name: Cleanup Billing Service
+
+permissions:
+  id-token: write
+  contents: read
+
+on:
+  workflow_dispatch: {}
+
+env:
+  AWS_REGION: us-east-1
+  CLUSTER_NAME: oficina48-eks
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig \
+            --region $AWS_REGION \
+            --name $CLUSTER_NAME
+
+      - name: Delete Kubernetes resources
+        run: |
+          kubectl delete deployment billing-service --ignore-not-found=true
+          kubectl delete service billing-service --ignore-not-found=true
+          kubectl delete hpa billing-service-hpa --ignore-not-found=true
+
+      - name: Wait LoadBalancer deletion
+        run: |
+          echo "Aguardando remoção do LoadBalancer..."
+          sleep 30
+
+      - name: Show cluster status
+        run: |
+          kubectl get deployments || true
+          kubectl get services || true
+          kubectl get hpa || true
+          kubectl get pods || true
