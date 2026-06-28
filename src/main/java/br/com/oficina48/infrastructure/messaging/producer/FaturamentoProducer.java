@@ -4,6 +4,8 @@ import br.com.oficina48.infrastructure.messaging.event.FaturamentoConcluidoEvent
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoFalhouEvent;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoPendenteEvent;
 import br.com.oficina48.infrastructure.properties.SqsProperties;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.awspring.cloud.sqs.operations.SqsTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,27 +18,72 @@ public class FaturamentoProducer {
 
     private final SqsTemplate sqsTemplate;
     private final SqsProperties sqsProperties;
+    private final ObjectMapper objectMapper;
 
-    public FaturamentoProducer(SqsTemplate sqsTemplate, SqsProperties sqsProperties) {
+    public FaturamentoProducer(
+            SqsTemplate sqsTemplate,
+            SqsProperties sqsProperties,
+            ObjectMapper objectMapper
+    ) {
         this.sqsTemplate = sqsTemplate;
         this.sqsProperties = sqsProperties;
+        this.objectMapper = objectMapper;
     }
 
     public void enviarFaturamentoPendente(FaturamentoPendenteEvent evento) {
         String queue = sqsProperties.queues().faturamentoPendente();
-        log.info("Enviando evento FaturamentoPendenteEvent para fila SQS: {}. Payload: {}", queue, evento);
-        sqsTemplate.send(queue, evento);
+
+        try {
+            String json = objectMapper.writeValueAsString(evento);
+
+            log.info("Enviando evento FaturamentoPendenteEvent para fila {}. Payload: {}", queue, json);
+
+            sqsTemplate.send(to -> to
+                    .queue(queue)
+                    .payload(json)
+            );
+
+        } catch (JsonProcessingException e) {
+            log.error("Erro ao serializar FaturamentoPendenteEvent", e);
+            throw new RuntimeException(e);
+        }
     }
 
     public void enviarFaturamentoConcluido(FaturamentoConcluidoEvent evento) {
         String queue = sqsProperties.queues().faturamentoConcluido();
-        log.info("Enviando evento FaturamentoConcluidoEvent para fila SQS: {}. Payload: {}", queue, evento);
-        sqsTemplate.send(queue, evento);
+
+        try {
+            String json = objectMapper.writeValueAsString(evento);
+
+            log.info("Enviando evento FaturamentoConcluidoEvent para fila {}. Payload: {}", queue, json);
+
+            sqsTemplate.send(to -> to
+                    .queue(queue)
+                    .payload(json)
+            );
+
+        } catch (JsonProcessingException e) {
+            log.error("Erro ao serializar FaturamentoConcluidoEvent", e);
+            throw new RuntimeException(e);
+        }
     }
 
     public void enviarFaturamentoFalhou(FaturamentoFalhouEvent evento) {
         String queue = sqsProperties.queues().faturamentoFalhou();
-        log.info("Enviando evento FaturamentoFalhouEvent para fila SQS: {}. Payload: {}", queue, evento);
-        sqsTemplate.send(queue, evento);
+
+        try {
+            String json = objectMapper.writeValueAsString(evento);
+
+            log.info("Enviando evento FaturamentoFalhouEvent para fila {}. Payload: {}", queue, json);
+
+            sqsTemplate.send(to -> to
+                    .queue(queue)
+                    .payload(json)
+            );
+
+        } catch (JsonProcessingException e) {
+            log.error("Erro ao serializar FaturamentoFalhouEvent", e);
+            throw new RuntimeException(e);
+        }
     }
 }
