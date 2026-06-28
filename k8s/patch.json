@@ -1,0 +1,5 @@
+[
+  {"op":"replace","path":"/spec/template/spec/containers/0/startupProbe/httpGet/path","value":"/api/actuator/health"},
+  {"op":"replace","path":"/spec/template/spec/containers/0/readinessProbe/httpGet/path","value":"/api/actuator/health"},
+  {"op":"replace","path":"/spec/template/spec/containers/0/livenessProbe/httpGet/path","value":"/api/actuator/health"}
+]
