@@ -1,0 +1,88 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: oficina48-postgres
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: oficina48_billing
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  localstack:
+    image: localstack/localstack:3.4.0
+    container_name: oficina48-localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=sqs
+      - AWS_DEFAULT_REGION=us-east-1
+    volumes:
+      - ./localstack-init:/etc/localstack/init/ready.d
+      - localstack_data:/var/lib/localstack
+    healthcheck:
+      test: ["CMD-SHELL", "awslocal sqs list-queues"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: oficina48-billing-app
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+    ports:
+      - "8082:8082"
+    environment:
+      SERVER_PORT: 8082
+      DB_URL: jdbc:postgresql://postgres:5432/oficina48_billing
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      AWS_SQS_ENDPOINT: http://localstack:4566
+      BILLING_BASE_URL: ${BILLING_BASE_URL:-oficina48_billing.com.br}
+      BILLING_DOCUMENTOS_PATH: /app/documentos
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      SQS_QUEUE_FATURAMENTO_SOLICITADO: faturamento-solicitado
+      SQS_QUEUE_FATURAMENTO_PENDENTE: faturamento-pendente
+      SQS_QUEUE_FATURAMENTO_CONCLUIDO: faturamento-concluido
+      SQS_QUEUE_FATURAMENTO_FALHOU: faturamento-falhou
+      SQS_QUEUE_ORCAMENTO_SOLICITADO: orcamento-solicitado
+      SQS_QUEUE_ORCAMENTO_APROVADO: orcamento-aprovado
+      SQS_QUEUE_ORCAMENTO_REPROVADO: orcamento-reprovado
+      OS_SERVICE_BASE_URL: http://host.docker.internal:8080
+      OS_SERVICE_CALLBACK_PATH: /api/ordens-servico/faturamento/resultado
+      OS_SERVICE_CONNECT_TIMEOUT: 2s
+      OS_SERVICE_READ_TIMEOUT: 5s
+      SAGA_CALLBACK_RETRY_FIXED_DELAY: 30000
+      SAGA_CALLBACK_RETRY_INITIAL_DELAY: 10000
+      SAGA_CALLBACK_RETRY_MAX_ATTEMPTS: 5
+      MRCPAGO_ACCESS_TOKEN: ${MRCPAGO_ACCESS_TOKEN:-APP_USR-356113337813774-062713-cd6f34c51fe3dd17c83e1d80b7c727bd-3502535202}
+      MRCPAGO_WEBHOOK_URL: ${MRCPAGO_WEBHOOK_URL:-https://oficina48_billing.com.br/api/mercadopago/webhook}
+      MRCPAGO_PUBLIC_KEY: ${MRCPAGO_PUBLIC_KEY:-APP_USR-8be113e6-10bf-4682-ae6a-d88cfa7a2ba8}
+      MRCPAGO_PRIVATE_KEY: ${MRCPAGO_PRIVATE_KEY:-}
+      MRCPAGO_CLIENT_SECRETS: ${MRCPAGO_CLIENT_SECRETS:-dummy_secret}
+      MRCPAGO_ENFORCE_SIGNATURE: ${MRCPAGO_ENFORCE_SIGNATURE:-false}
+      MRCPAGO_TEST_CLIENT: ${MRCPAGO_TEST_CLIENT:-TESTUSER2688471356907995117}
+      MRCPAGO_TEST_PASSWORD: ${MRCPAGO_TEST_PASSWORD:-nHlT2dhdL0}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./documentos:/app/documentos
+
+volumes:
+  postgres_data:
+  localstack_data:

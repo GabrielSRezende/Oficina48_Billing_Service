@@ -1,0 +1,51 @@
+spring:
+  cloud:
+    aws:
+      region:
+        static: us-east-1
+      credentials:
+        access-key: test
+        secret-key: test
+      sqs:
+        endpoint: http://localhost:4566
+  datasource:
+    url: jdbc:h2:mem:oficina48_billing_test;DB_CLOSE_DELAY=-1
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+
+app:
+  base-url: oficina48_billing.com.br
+  documentos:
+    path: target/documentos-test
+  sqs:
+    queues:
+      faturamento-solicitado: faturamento-solicitado-test
+      faturamento-pendente: faturamento-pendente-test
+      faturamento-concluido: faturamento-concluido-test
+      faturamento-falhou: faturamento-falhou-test
+      orcamento-solicitado: orcamento-solicitado-test
+      orcamento-aprovado: orcamento-aprovado-test
+      orcamento-reprovado: orcamento-reprovado-test
+  os-service:
+    base-url: http://localhost:8080
+    callback-path: /api/ordens-servico/faturamento/resultado
+    connect-timeout: 2s
+    read-timeout: 5s
+  saga:
+    callback-retry:
+      fixed-delay: 30000
+      initial-delay: 10000
+      max-attempts: 3
+
+mercadopago:
+  access-key: dummy-access-key
+  webhook-url: http://localhost:8082/api/mercadopago/webhook
+  public-key: dummy-public-key
+  private-key: dummy-private-key
+  client-secrets: dummy-secret
+  enforce-signature: false
