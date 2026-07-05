@@ -82,6 +82,11 @@ jobs:
           kubectl create secret generic billing-service-secret \
             --from-literal=SPRING_DATASOURCE_PASSWORD='${{ secrets.DB_PASSWORD }}' \
             --from-literal=NEW_RELIC_LICENSE_KEY='${{ secrets.NEW_RELIC_LICENSE_KEY }}' \
+            --from-literal=MRCPAGO_ACCESS_TOKEN='${{ secrets.MRCPAGO_ACCESS_TOKEN }}' \
+            --from-literal=MRCPAGO_PUBLIC_KEY='${{ secrets.MRCPAGO_PUBLIC_KEY }}' \
+            --from-literal=MRCPAGO_PRIVATE_KEY='${{ secrets.MRCPAGO_PRIVATE_KEY }}' \
+            --from-literal=MRCPAGO_CLIENT_SECRETS='${{ secrets.MRCPAGO_CLIENT_SECRETS }}' \
+            --from-literal=MRCPAGO_WEBHOOK_URL='${{ secrets.MRCPAGO_WEBHOOK_URL }}' \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Deploy Application
