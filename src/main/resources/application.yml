@@ -1,5 +1,7 @@
 server:
   port: ${SERVER_PORT:8082}
+  servlet:
+    context-path: /api
 
 spring:
   application:
@@ -63,15 +65,18 @@ management:
   endpoints:
     web:
       exposure:
-        include:
-          - health
-          - info
-          - mappings
-          - prometheus
-          - metrics
+        include: health,info,mappings,prometheus,metrics
+      base-path: /actuator
   endpoint:
     health:
       show-details: always
+      probes:
+        enabled: true
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
   metrics:
     tags:
       application: ${spring.application.name}
