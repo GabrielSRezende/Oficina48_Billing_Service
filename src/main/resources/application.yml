@@ -5,9 +5,9 @@ spring:
   application:
     name: oficina48-billing-service
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5433/oficina48_billing}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/oficina48_billing}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -20,21 +20,8 @@ spring:
     aws:
       region:
         static: us-east-1
-      credentials:
-        access-key: ${AWS_ACCESS_KEY_ID:test}
-        secret-key: ${AWS_SECRET_ACCESS_KEY:test}
       sqs:
-        endpoint: ${AWS_SQS_ENDPOINT:http://localhost:4566}
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
-  endpoint:
-    health:
-      probes:
-        enabled: true
+        endpoint: ${SQS_ENDPOINT:http://localhost:4566}
 
 app:
   base-url: ${BILLING_BASE_URL:oficina48_billing.com.br}
@@ -71,3 +58,20 @@ mercadopago:
 logging:
   level:
     org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping: TRACE
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - health
+          - info
+          - mappings
+          - prometheus
+          - metrics
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
