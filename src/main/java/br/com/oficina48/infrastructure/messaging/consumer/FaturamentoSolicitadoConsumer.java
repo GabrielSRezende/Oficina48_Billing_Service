@@ -18,7 +18,7 @@ public class FaturamentoSolicitadoConsumer {
         this.solicitarFaturamentoUseCase = solicitarFaturamentoUseCase;
     }
 
-    @SqsListener("${app.sqs.queues.faturamento-solicitado}")
+    @SqsListener("${app.sqs.queues.faturamento-solicitado}${SUFIXO_LOCAL:}")
     public void receber(FaturamentoSolicitadoEvent evento) {
         log.info("Mensagem de solicitação de faturamento recebida. Ordem de Serviço ID: {}, Valor: {}", 
                 evento.ordemServicoId(), evento.valor());

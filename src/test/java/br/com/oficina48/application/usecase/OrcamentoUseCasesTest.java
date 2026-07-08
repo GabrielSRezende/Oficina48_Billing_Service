@@ -50,7 +50,7 @@ class OrcamentoUseCasesTest {
     @DisplayName("Solicitar Orçamento - Deve salvar orçamento com status PENDENTE")
     void deveSolicitarOrcamentoComSucesso() {
         OrcamentoSolicitadoEvent event = new OrcamentoSolicitadoEvent(
-                10L, 2L, "ABC-1234",
+                10L, 2L, "ABC-1234", "saga-10",
                 Collections.singletonList(new ItemOrcamentoEvent("Serviço A", BigDecimal.ONE, BigDecimal.valueOf(100.00), BigDecimal.valueOf(100.00))),
                 Collections.emptyList(),
                 Collections.emptyList(),
@@ -68,6 +68,7 @@ class OrcamentoUseCasesTest {
 
         Orcamento saved = captor.getValue();
         assertEquals(10L, saved.getOrdemServicoId());
+        assertEquals("saga-10", saved.getSagaId());
         assertEquals(BigDecimal.valueOf(100.00), saved.getValorTotal());
         assertEquals(OrcamentoStatus.PENDENTE, saved.getStatus());
     }
@@ -78,6 +79,7 @@ class OrcamentoUseCasesTest {
         Orcamento orcamento = Orcamento.builder()
                 .id(1L)
                 .ordemServicoId(10L)
+                .sagaId("saga-10")
                 .valorTotal(BigDecimal.valueOf(100.00))
                 .status(OrcamentoStatus.PENDENTE)
                 .build();
@@ -88,7 +90,7 @@ class OrcamentoUseCasesTest {
 
         assertEquals(OrcamentoStatus.APROVADO, orcamento.getStatus());
         verify(orcamentoRepository).save(orcamento);
-        verify(orcamentoProducer).enviarOrcamentoAprovado(new OrcamentoAprovadoEvent(10L));
+        verify(orcamentoProducer).enviarOrcamentoAprovado(new OrcamentoAprovadoEvent(10L, "saga-10"));
         verify(orcamentoProducer, never()).enviarOrcamentoReprovado(any());
     }
 
@@ -98,6 +100,7 @@ class OrcamentoUseCasesTest {
         Orcamento orcamento = Orcamento.builder()
                 .id(1L)
                 .ordemServicoId(10L)
+                .sagaId("saga-10")
                 .valorTotal(BigDecimal.valueOf(100.00))
                 .status(OrcamentoStatus.PENDENTE)
                 .build();
@@ -108,7 +111,7 @@ class OrcamentoUseCasesTest {
 
         assertEquals(OrcamentoStatus.REPROVADO, orcamento.getStatus());
         verify(orcamentoRepository).save(orcamento);
-        verify(orcamentoProducer).enviarOrcamentoReprovado(new OrcamentoReprovadoEvent(10L));
+        verify(orcamentoProducer).enviarOrcamentoReprovado(new OrcamentoReprovadoEvent(10L, "saga-10"));
         verify(orcamentoProducer, never()).enviarOrcamentoAprovado(any());
     }
 
@@ -118,6 +121,7 @@ class OrcamentoUseCasesTest {
         Orcamento orcamento = Orcamento.builder()
                 .id(1L)
                 .ordemServicoId(10L)
+                .sagaId("saga-10")
                 .status(OrcamentoStatus.APROVADO)
                 .build();
 

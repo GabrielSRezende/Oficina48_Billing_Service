@@ -6,6 +6,7 @@ import io.awspring.cloud.sqs.annotation.SqsListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.messaging.Message;
 
 @Component
 public class OrcamentoSolicitadoConsumer {
@@ -18,7 +19,7 @@ public class OrcamentoSolicitadoConsumer {
         this.solicitarOrcamentoUseCase = solicitarOrcamentoUseCase;
     }
 
-    @SqsListener("${app.sqs.queues.orcamento-solicitado}")
+    @SqsListener("${app.sqs.queues.orcamento-solicitado}${SUFIXO_LOCAL:}")
     public void receber(OrcamentoSolicitadoEvent evento) {
         log.info("Mensagem de solicitação de orçamento recebida. Ordem de Serviço ID: {}, Valor Total: {}", 
                 evento.ordemServicoId(), evento.valorTotal());

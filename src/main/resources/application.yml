@@ -1,5 +1,5 @@
 server:
-  port: ${SERVER_PORT:8082}
+  port: ${SERVER_PORT:8083}
 
 spring:
   application:
@@ -59,6 +59,20 @@ app:
       fixed-delay: ${SAGA_CALLBACK_RETRY_FIXED_DELAY:30000}
       initial-delay: ${SAGA_CALLBACK_RETRY_INITIAL_DELAY:10000}
       max-attempts: ${SAGA_CALLBACK_RETRY_MAX_ATTEMPTS:5}
+
+queue:
+  diagnostico-solicitado: ${QUEUE_DIAGNOSTICO_SOLICITADO:diagnostico-solicitado}
+  execucao-solicitada: ${QUEUE_EXECUCAO_SOLICITADA:execucao-solicitada}
+  falha-execution-service: ${QUEUE_FALHA_EXECUTION_SERVICE:falha-execution-service}
+  orcamento-reprovado: ${QUEUE_ORCAMENTO_REPROVADO:orcamento-reprovado}
+  faturamento-concluido: ${QUEUE_FATURAMENTO_CONCLUIDO:faturamento-concluido}
+  execucao-finalizada: ${QUEUE_EXECUCAO_FINALIZADA:execucao-finalizada}
+  diagnostico-finalizado: ${QUEUE_DIAGNOSTICO_FINALIZADO:diagnostico-finalizado}
+  orcamento-aprovado: ${QUEUE_ORCAMENTO_APROVADO:orcamento-aprovado}
+  orcamento-solicitado: ${QUEUE_ORCAMENTO_SOLICITADO:orcamento-solicitado}
+  faturamento-solicitado: ${QUEUE_FATURAMENTO_SOLICITADO:faturamento-solicitado}
+  faturamento-pendente: ${QUEUE_FATURAMENTO_PENDENTE:faturamento-pendente}
+  faturamento-falhou: ${QUEUE_FATURAMENTO_FALHOU:faturamento-falhou}
 
 mercadopago:                         
   access-key: ${MRCPAGO_ACCESS_TOKEN:}

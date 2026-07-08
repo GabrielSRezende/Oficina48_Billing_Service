@@ -43,7 +43,7 @@ public class SolicitarFaturamentoUseCase {
     public void executar(FaturamentoSolicitadoEvent event) {
         log.info("Iniciando processo de solicitação de faturamento para OS ID: {}", event.ordemServicoId());
 
-        Optional<Faturamento> faturamentoExistente = faturamentoRepository
+            Optional<Faturamento> faturamentoExistente = faturamentoRepository
                 .findFirstByOrdemServicoIdOrderByDataCriacaoDesc(event.ordemServicoId());
 
         if (faturamentoExistente.isPresent() && faturamentoExistente.get().getStatus() == FaturamentoStatus.CONCLUIDO) {
@@ -51,6 +51,7 @@ public class SolicitarFaturamentoUseCase {
             Faturamento f = faturamentoExistente.get();
             faturamentoProducer.enviarFaturamentoConcluido(new FaturamentoConcluidoEvent(
                     f.getOrdemServicoId(),
+                    f.getSagaId(),
                     f.getPagamentoId(),
                     f.getValor()
             ));
@@ -68,13 +69,15 @@ public class SolicitarFaturamentoUseCase {
                     .build();
 
             log.info("Criando cobrança no Mercado Pago para OS ID: {}", event.ordemServicoId());
-            ChargeResponse chargeResponse = bankProvider.createPixCharge(chargeRequest);
+            ChargeResponse chargeResponse = new ChargeResponse("qrCode","qrCodeBase64","paymentLink","transactionId","status","externalReference");// TODO MUDAR: bankProvider.createPixCharge(chargeRequest);
 
             Faturamento faturamento = faturamentoExistente.orElseGet(() -> Faturamento.builder()
                      .ordemServicoId(event.ordemServicoId())
+                     .sagaId(event.sagaId())
                      .valor(event.valor())
                      .build());
 
+            faturamento.setSagaId(event.sagaId());
             faturamento.setStatus(FaturamentoStatus.PENDENTE);
             faturamento.setPagamentoId(chargeResponse.getTransactionId());
             faturamento.setPagamentoLink(chargeResponse.getPaymentLink());
@@ -89,6 +92,7 @@ public class SolicitarFaturamentoUseCase {
 
             faturamentoProducer.enviarFaturamentoPendente(new FaturamentoPendenteEvent(
                     faturamento.getOrdemServicoId(),
+                    faturamento.getSagaId(),
                     faturamento.getPagamentoId(),
                     faturamento.getPagamentoLink(),
                     faturamento.getValor()
@@ -100,14 +104,17 @@ public class SolicitarFaturamentoUseCase {
 
             Faturamento faturamento = faturamentoExistente.orElseGet(() -> Faturamento.builder()
                     .ordemServicoId(event.ordemServicoId())
+                    .sagaId(event.sagaId())
                     .valor(event.valor())
                     .build());
 
+            faturamento.setSagaId(event.sagaId());
             faturamento.setStatus(FaturamentoStatus.FALHOU);
             faturamentoRepository.save(faturamento);
 
             faturamentoProducer.enviarFaturamentoFalhou(new FaturamentoFalhouEvent(
                     event.ordemServicoId(),
+                    event.sagaId(),
                     "Falha ao gerar cobrança no gateway de pagamento: " + e.getMessage(),
                     event.valor()
             ));

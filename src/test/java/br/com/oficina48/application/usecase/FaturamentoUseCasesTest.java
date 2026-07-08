@@ -56,7 +56,7 @@ class FaturamentoUseCasesTest {
     @DisplayName("Solicitar Faturamento - Deve criar cobrança pendente com sucesso")
     void deveSolicitarFaturamentoComSucesso() {
         FaturamentoSolicitadoEvent event = new FaturamentoSolicitadoEvent(
-                1L, BigDecimal.valueOf(150.00), "cliente@email.com", "Cliente Teste", "12345678901", "OS 1 Description"
+                1L, "saga-1", BigDecimal.valueOf(150.00), "cliente@email.com", "Cliente Teste", "12345678901", "OS 1 Description"
         );
 
         when(faturamentoRepository.findFirstByOrdemServicoIdOrderByDataCriacaoDesc(1L))
@@ -79,13 +79,14 @@ class FaturamentoUseCasesTest {
 
         Faturamento saved = faturamentoCaptor.getValue();
         assertEquals(1L, saved.getOrdemServicoId());
+        assertEquals("saga-1", saved.getSagaId());
         assertEquals(BigDecimal.valueOf(150.00), saved.getValor());
         assertEquals(FaturamentoStatus.PENDENTE, saved.getStatus());
         assertEquals("mp-12345", saved.getPagamentoId());
         assertEquals("http://pagamento.link", saved.getPagamentoLink());
 
         verify(faturamentoProducer).enviarFaturamentoPendente(new FaturamentoPendenteEvent(
-                1L, "mp-12345", "http://pagamento.link", BigDecimal.valueOf(150.00)
+                1L, "saga-1", "mp-12345", "http://pagamento.link", BigDecimal.valueOf(150.00)
         ));
         verify(faturamentoProducer, never()).enviarFaturamentoConcluido(any());
         verify(faturamentoProducer, never()).enviarFaturamentoFalhou(any());
@@ -95,11 +96,12 @@ class FaturamentoUseCasesTest {
     @DisplayName("Solicitar Faturamento - Se já concluído, deve apenas reenviar evento")
     void deveReenviarEventoSeJaConcluido() {
         FaturamentoSolicitadoEvent event = new FaturamentoSolicitadoEvent(
-                1L, BigDecimal.valueOf(150.00), "cliente@email.com", "Cliente Teste", "12345678901", "OS 1 Description"
+                1L, "saga-1", BigDecimal.valueOf(150.00), "cliente@email.com", "Cliente Teste", "12345678901", "OS 1 Description"
         );
 
         Faturamento faturamentoExistente = Faturamento.builder()
                 .ordemServicoId(1L)
+                .sagaId("saga-1")
                 .valor(BigDecimal.valueOf(150.00))
                 .status(FaturamentoStatus.CONCLUIDO)
                 .pagamentoId("mp-already-paid")
@@ -114,7 +116,7 @@ class FaturamentoUseCasesTest {
         verify(faturamentoRepository, never()).save(any());
 
         verify(faturamentoProducer).enviarFaturamentoConcluido(new FaturamentoConcluidoEvent(
-                1L, "mp-already-paid", BigDecimal.valueOf(150.00)
+                1L, "saga-1", "mp-already-paid", BigDecimal.valueOf(150.00)
         ));
     }
 
@@ -122,7 +124,7 @@ class FaturamentoUseCasesTest {
     @DisplayName("Solicitar Faturamento - Se falhar no gateway, deve salvar como falhado e enviar evento")
     void deveSalvarComoFalhadoSeGatewayFalhar() {
         FaturamentoSolicitadoEvent event = new FaturamentoSolicitadoEvent(
-                1L, BigDecimal.valueOf(150.00), "cliente@email.com", "Cliente Teste", "12345678901", "OS 1 Description"
+                1L, "saga-1", BigDecimal.valueOf(150.00), "cliente@email.com", "Cliente Teste", "12345678901", "OS 1 Description"
         );
 
         when(faturamentoRepository.findFirstByOrdemServicoIdOrderByDataCriacaoDesc(1L))
@@ -138,6 +140,7 @@ class FaturamentoUseCasesTest {
 
         Faturamento saved = faturamentoCaptor.getValue();
         assertEquals(1L, saved.getOrdemServicoId());
+        assertEquals("saga-1", saved.getSagaId());
         assertEquals(FaturamentoStatus.FALHOU, saved.getStatus());
 
         verify(faturamentoProducer).enviarFaturamentoFalhou(any(FaturamentoFalhouEvent.class));
@@ -155,6 +158,7 @@ class FaturamentoUseCasesTest {
 
         Faturamento faturamento = Faturamento.builder()
                 .ordemServicoId(1L)
+                .sagaId("saga-1")
                 .valor(BigDecimal.valueOf(150.00))
                 .status(FaturamentoStatus.PENDENTE)
                 .pagamentoId("mp-12345")
@@ -169,7 +173,7 @@ class FaturamentoUseCasesTest {
         verify(faturamentoRepository).save(faturamento);
         verify(documentoStorage).salvar(eq("links_pagamento"), eq("recibo_OS_1.txt"), anyString());
         verify(faturamentoProducer).enviarFaturamentoConcluido(new FaturamentoConcluidoEvent(
-                1L, "mp-12345", BigDecimal.valueOf(150.00)
+                1L, "saga-1", "mp-12345", BigDecimal.valueOf(150.00)
         ));
     }
 
@@ -186,6 +190,7 @@ class FaturamentoUseCasesTest {
 
         Faturamento faturamento = Faturamento.builder()
                 .ordemServicoId(1L)
+                .sagaId("saga-1")
                 .valor(BigDecimal.valueOf(150.00))
                 .status(FaturamentoStatus.PENDENTE)
                 .pagamentoId("mp-12345")

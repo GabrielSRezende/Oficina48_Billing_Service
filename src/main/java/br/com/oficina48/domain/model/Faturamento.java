@@ -22,6 +22,9 @@ public class Faturamento {
     @Column(name = "ordem_servico_id", nullable = false)
     private Long ordemServicoId;
 
+    @Column(name = "saga_id", length = 100)
+    private String sagaId;
+
     @Column(name = "valor", nullable = false, precision = 10, scale = 2)
     private BigDecimal valor;
 
