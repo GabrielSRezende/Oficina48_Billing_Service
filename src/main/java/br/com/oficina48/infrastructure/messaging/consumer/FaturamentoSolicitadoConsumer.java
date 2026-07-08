@@ -3,14 +3,12 @@ package br.com.oficina48.infrastructure.messaging.consumer;
 import br.com.oficina48.application.usecase.SolicitarFaturamentoUseCase;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoSolicitadoEvent;
 import io.awspring.cloud.sqs.annotation.SqsListener;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 public class FaturamentoSolicitadoConsumer {
-
-    private static final Logger log = LoggerFactory.getLogger(FaturamentoSolicitadoConsumer.class);
 
     private final SolicitarFaturamentoUseCase solicitarFaturamentoUseCase;
 
@@ -18,10 +16,9 @@ public class FaturamentoSolicitadoConsumer {
         this.solicitarFaturamentoUseCase = solicitarFaturamentoUseCase;
     }
 
-    @SqsListener("${app.sqs.queues.faturamento-solicitado}${SUFIXO_LOCAL:}")
+    @SqsListener("${app.sqs.queues.faturamento-solicitado:faturamento-solicitado}")
     public void receber(FaturamentoSolicitadoEvent evento) {
-        log.info("Mensagem de solicitação de faturamento recebida. Ordem de Serviço ID: {}, Valor: {}", 
-                evento.ordemServicoId(), evento.valor());
+        log.info("\nMensagem recebida em: faturamento-solicitado. Mensagem: \n{}", evento);
         try {
             solicitarFaturamentoUseCase.executar(evento);
         } catch (Exception e) {

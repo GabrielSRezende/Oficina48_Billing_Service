@@ -69,7 +69,7 @@ public class SolicitarFaturamentoUseCase {
                     .build();
 
             log.info("Criando cobrança no Mercado Pago para OS ID: {}", event.ordemServicoId());
-            ChargeResponse chargeResponse = new ChargeResponse("qrCode","qrCodeBase64","paymentLink","transactionId","status","externalReference");// TODO MUDAR: bankProvider.createPixCharge(chargeRequest);
+            ChargeResponse chargeResponse = bankProvider.createPixCharge(chargeRequest);
 
             Faturamento faturamento = faturamentoExistente.orElseGet(() -> Faturamento.builder()
                      .ordemServicoId(event.ordemServicoId())
