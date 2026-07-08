@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 
 public record FaturamentoSolicitadoEvent(
         Long ordemServicoId,
+        String sagaId,
         BigDecimal valor,
         String clienteEmail,
         String clienteNome,

@@ -7,6 +7,7 @@ public record OrcamentoSolicitadoEvent(
         Long ordemServicoId,
         Long veiculoId,
         String placaVeiculo,
+        String sagaId,
         List<ItemOrcamentoEvent> servicos,
         List<ItemOrcamentoEvent> pecas,
         List<ItemOrcamentoEvent> insumos,

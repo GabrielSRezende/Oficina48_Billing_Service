@@ -35,6 +35,9 @@ public class Orcamento {
     @Column(name = "data_atualizacao")
     private LocalDateTime dataAtualizacao;
 
+    @Column(name = "sagaId")
+    private String sagaId;
+
     @PrePersist
     protected void onCreate() {
         dataCriacao = LocalDateTime.now();

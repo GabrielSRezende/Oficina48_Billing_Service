@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 
 public record FaturamentoPendenteEvent(
         Long ordemServicoId,
+        String sagaId,
         String pagamentoId,
         String pagamentoLink,
         BigDecimal valor

@@ -41,12 +41,18 @@ public class ProcessarDecisaoOrcamentoUseCase {
             orcamento.setStatus(OrcamentoStatus.APROVADO);
             orcamentoRepository.save(orcamento);
             log.info("Orçamento ID: {} APROVADO. Enviando notificação para o OS Service.", id);
-            orcamentoProducer.enviarOrcamentoAprovado(new OrcamentoAprovadoEvent(orcamento.getOrdemServicoId()));
+            orcamentoProducer.enviarOrcamentoAprovado(new OrcamentoAprovadoEvent(
+                    orcamento.getOrdemServicoId(),
+                    orcamento.getSagaId()
+            ));
         } else {
             orcamento.setStatus(OrcamentoStatus.REPROVADO);
             orcamentoRepository.save(orcamento);
             log.info("Orçamento ID: {} REPROVADO. Enviando notificação para o OS Service.", id);
-            orcamentoProducer.enviarOrcamentoReprovado(new OrcamentoReprovadoEvent(orcamento.getOrdemServicoId()));
+            orcamentoProducer.enviarOrcamentoReprovado(new OrcamentoReprovadoEvent(
+                    orcamento.getOrdemServicoId(),
+                    orcamento.getSagaId()
+            ));
         }
     }
 }

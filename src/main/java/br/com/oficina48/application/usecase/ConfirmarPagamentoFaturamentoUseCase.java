@@ -79,6 +79,7 @@ public class ConfirmarPagamentoFaturamentoUseCase {
 
             faturamentoProducer.enviarFaturamentoConcluido(new FaturamentoConcluidoEvent(
                     faturamento.getOrdemServicoId(),
+                    faturamento.getSagaId(),
                     paymentId,
                     faturamento.getValor()
             ));
@@ -96,6 +97,7 @@ public class ConfirmarPagamentoFaturamentoUseCase {
 
             faturamentoProducer.enviarFaturamentoFalhou(new FaturamentoFalhouEvent(
                     faturamento.getOrdemServicoId(),
+                    faturamento.getSagaId(),
                     "Pagamento rejeitado ou cancelado no gateway: " + chargeStatus.getDetails(),
                     faturamento.getValor()
             ));

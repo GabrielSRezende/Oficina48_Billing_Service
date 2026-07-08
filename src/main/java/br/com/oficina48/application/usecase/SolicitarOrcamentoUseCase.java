@@ -1,9 +1,9 @@
 package br.com.oficina48.application.usecase;
 
+import br.com.oficina48.application.service.DocumentoStorage;
 import br.com.oficina48.domain.model.Orcamento;
 import br.com.oficina48.domain.model.OrcamentoStatus;
 import br.com.oficina48.domain.repository.OrcamentoRepository;
-import br.com.oficina48.application.service.DocumentoStorage;
 import br.com.oficina48.infrastructure.messaging.event.OrcamentoSolicitadoEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,10 +36,12 @@ public class SolicitarOrcamentoUseCase {
 
         Orcamento orcamento = orcamentoExistente.orElseGet(() -> Orcamento.builder()
                 .ordemServicoId(event.ordemServicoId())
+                .sagaId(event.sagaId())
                 .build());
 
         orcamento.setValorTotal(event.valorTotal());
         orcamento.setStatus(OrcamentoStatus.PENDENTE);
+        orcamento.setSagaId(event.sagaId());
 
         orcamentoRepository.save(orcamento);
         log.info("Orçamento registrado como PENDENTE para OS ID: {}, Valor Total: {}", 
