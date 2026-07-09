@@ -63,18 +63,18 @@ public class SolicitarOrcamentoUseCase {
         sb.append("----------------------------------------\n");
         sb.append("Serviços:\n");
         if (event.servicos() != null) {
-            event.servicos().forEach(s -> sb.append(String.format("  - %s: %s x R$ %s (Subtotal: R$ %s)\n",
-                     s.nome(), s.quantidade(), s.valorUnitario(), s.subtotal())));
+            event.servicos().forEach(item -> sb.append(String.format("  - %s: %s x R$ %s (Subtotal: R$ %s)\n",
+                     item.nome(), item.quantidade(), item.preco(), item.subtotal())));
         }
         sb.append("Peças:\n");
         if (event.pecas() != null) {
-            event.pecas().forEach(p -> sb.append(String.format("  - %s: %s x R$ %s (Subtotal: R$ %s)\n",
-                     p.nome(), p.quantidade(), p.valorUnitario(), p.subtotal())));
+            event.pecas().forEach(item -> sb.append(String.format("  - %s: %s x R$ %s (Subtotal: R$ %s)\n",
+                     item.nome(), item.quantidade(), item.preco(), item.subtotal())));
         }
         sb.append("Insumos:\n");
         if (event.insumos() != null) {
-            event.insumos().forEach(i -> sb.append(String.format("  - %s: %s x R$ %s (Subtotal: R$ %s)\n",
-                     i.nome(), i.quantidade(), i.valorUnitario(), i.subtotal())));
+            event.insumos().forEach(item -> sb.append(String.format("  - %s: %s x R$ %s (Subtotal: R$ %s)\n",
+                     item.nome(), item.quantidade(), item.preco(), item.subtotal())));
         }
         sb.append("========================================\n");
         log.info("Relatório de orçamento simulado gerado com sucesso:\n{}", sb.toString());

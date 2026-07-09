@@ -51,7 +51,7 @@ class OrcamentoUseCasesTest {
     void deveSolicitarOrcamentoComSucesso() {
         OrcamentoSolicitadoEvent event = new OrcamentoSolicitadoEvent(
                 10L, 2L, "ABC-1234", "saga-10",
-                Collections.singletonList(new ItemOrcamentoEvent("Serviço A", BigDecimal.ONE, BigDecimal.valueOf(100.00), BigDecimal.valueOf(100.00))),
+                Collections.singletonList(new ItemOrcamentoEvent("Serviço A", 1, BigDecimal.valueOf(100.00), BigDecimal.valueOf(100.00))),
                 Collections.emptyList(),
                 Collections.emptyList(),
                 BigDecimal.valueOf(100.00)

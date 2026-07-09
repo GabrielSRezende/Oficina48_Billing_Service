@@ -4,8 +4,13 @@ import java.math.BigDecimal;
 
 public record ItemOrcamentoEvent(
         String nome,
-        BigDecimal quantidade,
-        BigDecimal valorUnitario,
+        Integer quantidade,
+        BigDecimal preco,
         BigDecimal subtotal
 ) {
+
+    @Override
+    public BigDecimal subtotal() {
+        return preco.multiply(new BigDecimal(quantidade));
+    }
 }
