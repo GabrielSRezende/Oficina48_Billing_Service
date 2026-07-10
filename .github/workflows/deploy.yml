@@ -104,13 +104,6 @@ jobs:
           kubectl rollout status \
             deployment/billing-service \
             --timeout=200s
-      - name: Rollout
-        run: |
-          kubectl rollout restart deployment/billing-service
-          
-          kubectl rollout status \
-            deployment/billing-service \
-            --timeout=250s
 
       - name: Debug Rollout (se falhar)
         if: failure()
