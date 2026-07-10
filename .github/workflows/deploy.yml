@@ -104,6 +104,43 @@ jobs:
           kubectl rollout status \
             deployment/billing-service \
             --timeout=250s
+      - name: Rollout
+        run: |
+          kubectl rollout restart deployment/billing-service
+          
+          kubectl rollout status \
+            deployment/billing-service \
+            --timeout=250s
+
+      - name: Debug Rollout (se falhar)
+        if: failure()
+        run: |
+          echo "### 🔴 DIAGNÓSTICO DO ROLLOUT" >> $GITHUB_STEP_SUMMARY
+
+          echo "---- PODS ----"
+          kubectl get pods -l app=billing-service -o wide
+
+          echo "---- DESCRIBE DOS PODS ----"
+          for pod in $(kubectl get pods -l app=billing-service -o jsonpath='{.items[*].metadata.name}'); do
+            echo "===== $pod ====="
+            kubectl describe pod "$pod"
+          done
+
+          echo "---- EVENTOS DO NAMESPACE (últimos) ----"
+          kubectl get events --sort-by='.lastTimestamp' | tail -n 40
+
+          echo "---- LOGS ATUAIS ----"
+          kubectl logs -l app=billing-service --tail=200 --all-containers || true
+
+          echo "---- LOGS DO CONTAINER ANTERIOR (se crashou) ----"
+          for pod in $(kubectl get pods -l app=billing-service -o jsonpath='{.items[*].metadata.name}'); do
+            echo "===== $pod (previous) ====="
+            kubectl logs "$pod" --previous --all-containers || true
+          done
+
+          echo "---- STATUS DO DEPLOYMENT ----"
+          kubectl get deployment billing-service -o wide
+          kubectl describe deployment billing-service
 
       - name: Aguarda LoadBalancer
         id: lb
