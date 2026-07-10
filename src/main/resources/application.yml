@@ -79,18 +79,15 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,mappings,prometheus,metrics
-      base-path: /actuator
+        include:
+          - health
+          - info
+          - mappings
+          - prometheus
+          - metrics
   endpoint:
     health:
       show-details: always
-      probes:
-        enabled: true
-  health:
-    livenessState:
-      enabled: true
-    readinessState:
-      enabled: true
   metrics:
     tags:
       application: ${spring.application.name}
