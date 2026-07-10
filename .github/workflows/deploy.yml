@@ -103,7 +103,7 @@ jobs:
 
           kubectl rollout status \
             deployment/billing-service \
-            --timeout=180s
+            --timeout=250s
 
       - name: Aguarda LoadBalancer
         id: lb
