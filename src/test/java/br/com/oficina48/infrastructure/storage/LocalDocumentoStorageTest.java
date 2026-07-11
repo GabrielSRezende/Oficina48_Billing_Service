@@ -51,4 +51,18 @@ class LocalDocumentoStorageTest {
         assertEquals("Orcamento 1", Files.readString(orcamentoPath));
         assertEquals("Faturamento 2", Files.readString(faturamentoPath));
     }
+
+    @Test
+    @DisplayName("Deve capturar IOException quando não puder criar o diretório da subpasta")
+    void deveCapturarIOExceptionQuandoNaoPuderCriarDiretorio() throws IOException {
+        Path regularFile = tempDir.resolve("subpasta_bloqueada");
+        Files.writeString(regularFile, "bloqueio");
+
+        assertDoesNotThrow(() -> {
+            localDocumentoStorage.salvar("subpasta_bloqueada", "arquivo.txt", "conteudo");
+        });
+
+        Path targetFile = regularFile.resolve("arquivo.txt");
+        assertFalse(Files.exists(targetFile));
+    }
 }
