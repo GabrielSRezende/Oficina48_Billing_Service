@@ -134,4 +134,84 @@ class OrcamentoUseCasesTest {
         verify(orcamentoRepository, never()).save(any());
         verify(orcamentoProducer, never()).enviarOrcamentoAprovado(any());
     }
+
+    @Test
+    @DisplayName("Solicitar Orçamento - Deve atualizar orçamento existente se já houver registro")
+    void deveAtualizarOrcamentoExistente() {
+        OrcamentoSolicitadoEvent event = new OrcamentoSolicitadoEvent(
+                10L, 2L, "ABC-1234", "saga-10",
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyList(),
+                BigDecimal.valueOf(120.00)
+        );
+
+        Orcamento orcamentoExistente = Orcamento.builder()
+                .ordemServicoId(10L)
+                .sagaId("saga-old")
+                .valorTotal(BigDecimal.valueOf(100.00))
+                .status(OrcamentoStatus.APROVADO)
+                .build();
+
+        when(orcamentoRepository.findFirstByOrdemServicoIdOrderByDataCriacaoDesc(10L))
+                .thenReturn(Optional.of(orcamentoExistente));
+
+        solicitarOrcamentoUseCase.executar(event);
+
+        verify(orcamentoRepository).save(orcamentoExistente);
+        assertEquals(BigDecimal.valueOf(120.00), orcamentoExistente.getValorTotal());
+        assertEquals(OrcamentoStatus.PENDENTE, orcamentoExistente.getStatus());
+        assertEquals("saga-10", orcamentoExistente.getSagaId());
+    }
+
+    @Test
+    @DisplayName("Solicitar Orçamento - Cobertura de relatórios de orçamento com listas nulas")
+    void deveGerarRelatorioComListasNulas() {
+        OrcamentoSolicitadoEvent event = new OrcamentoSolicitadoEvent(
+                10L, 2L, "ABC-1234", "saga-10",
+                null, null, null,
+                BigDecimal.valueOf(120.00)
+        );
+
+        when(orcamentoRepository.findFirstByOrdemServicoIdOrderByDataCriacaoDesc(10L))
+                .thenReturn(Optional.empty());
+
+        solicitarOrcamentoUseCase.executar(event);
+
+        verify(documentoStorage).salvar(eq("orcamentos"), eq("orcamento_OS_10.txt"), anyString());
+    }
+
+    @Test
+    @DisplayName("Solicitar Orçamento - Cobertura de relatórios de orçamento com peças e insumos ativos")
+    void deveGerarRelatorioComPecasEInsumos() {
+        OrcamentoSolicitadoEvent event = new OrcamentoSolicitadoEvent(
+                10L, 2L, "ABC-1234", "saga-10",
+                Collections.singletonList(new ItemOrcamentoEvent("Serviço A", 1, BigDecimal.valueOf(50.0), BigDecimal.valueOf(50.0))),
+                Collections.singletonList(new ItemOrcamentoEvent("Peça B", 2, BigDecimal.valueOf(30.0), BigDecimal.valueOf(60.0))),
+                Collections.singletonList(new ItemOrcamentoEvent("Insumo C", 3, BigDecimal.valueOf(10.0), BigDecimal.valueOf(30.0))),
+                BigDecimal.valueOf(140.00)
+        );
+
+        when(orcamentoRepository.findFirstByOrdemServicoIdOrderByDataCriacaoDesc(10L))
+                .thenReturn(Optional.empty());
+
+        solicitarOrcamentoUseCase.executar(event);
+
+        verify(documentoStorage).salvar(eq("orcamentos"), eq("orcamento_OS_10.txt"), argThat(relatorio -> 
+                relatorio.contains("Peças:") &&
+                relatorio.contains("- Peça B: 2 x R$ 30.0") &&
+                relatorio.contains("Insumos:") &&
+                relatorio.contains("- Insumo C: 3 x R$ 10.0")
+        ));
+    }
+
+    @Test
+    @DisplayName("Processar Decisão - Deve lançar exceção se orçamento não for encontrado")
+    void deveLancarExcecaoSeOrcamentoNaoForEncontrado() {
+        when(orcamentoRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () -> 
+                processarDecisaoOrcamentoUseCase.executar(999L, true)
+        );
+
+        verify(orcamentoRepository, never()).save(any());
+    }
 }
