@@ -11,6 +11,7 @@ public record SqsProperties(
             String faturamentoPendente,
             String faturamentoConcluido,
             String faturamentoFalhou,
+            String falhaPagamento,
             String orcamentoSolicitado,
             String orcamentoAprovado,
             String orcamentoReprovado

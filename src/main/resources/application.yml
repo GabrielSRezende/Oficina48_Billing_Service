@@ -35,6 +35,7 @@ app:
       faturamento-pendente: ${SQS_QUEUE_FATURAMENTO_PENDENTE:faturamento-pendente}
       faturamento-concluido: ${SQS_QUEUE_FATURAMENTO_CONCLUIDO:faturamento-concluido}
       faturamento-falhou: ${SQS_QUEUE_FATURAMENTO_FALHOU:faturamento-falhou}
+      falha-pagamento: ${SQS_QUEUE_FALHA_PAGAMENTO:falha-pagamento}
       orcamento-solicitado: ${SQS_QUEUE_ORCAMENTO_SOLICITADO:orcamento-solicitado}
       orcamento-aprovado: ${SQS_QUEUE_ORCAMENTO_APROVADO:orcamento-aprovado}
       orcamento-reprovado: ${SQS_QUEUE_ORCAMENTO_REPROVADO:orcamento-reprovado}
@@ -62,6 +63,7 @@ queue:
   faturamento-solicitado: ${QUEUE_FATURAMENTO_SOLICITADO:faturamento-solicitado}
   faturamento-pendente: ${QUEUE_FATURAMENTO_PENDENTE:faturamento-pendente}
   faturamento-falhou: ${QUEUE_FATURAMENTO_FALHOU:faturamento-falhou}
+  falha-pagamento: ${QUEUE_FALHA_PAGAMENTO:falha-pagamento}
 
 mercadopago:
   access-key: ${MRCPAGO_ACCESS_TOKEN:}

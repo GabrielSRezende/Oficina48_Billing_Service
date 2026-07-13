@@ -99,9 +99,11 @@ public class MercadoPagoProvider implements BankProvider {
             String errorMsg = String.format("Erro na API do Mercado Pago (Status %d): %s",
                     e.getApiResponse().getStatusCode(), e.getApiResponse().getContent());
             log.error(errorMsg);
-            throw new RuntimeException(errorMsg, e);
+            throw new FalhaPagamentoException(getProviderName(), "MP_API_EXCEPTION", errorMsg, e);
         } catch (MPException e) {
-            throw new RuntimeException("Erro na SDK do Mercado Pago: " + e.getMessage(), e);
+            String errorMsg = "Erro na SDK do Mercado Pago: " + e.getMessage();
+            log.error(errorMsg, e);
+            throw new FalhaPagamentoException(getProviderName(), "MP_EXCEPTION", errorMsg, e);
         }
     }
 

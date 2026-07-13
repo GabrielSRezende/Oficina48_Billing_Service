@@ -1,8 +1,7 @@
 package br.com.oficina48.infrastructure.messaging.producer;
 
-import br.com.oficina48.infrastructure.messaging.event.FaturamentoConcluidoEvent;
-import br.com.oficina48.infrastructure.messaging.event.FaturamentoFalhouEvent;
-import br.com.oficina48.infrastructure.messaging.event.FaturamentoPendenteEvent;
+import br.com.oficina48.infrastructure.messaging.EventMapper;
+import br.com.oficina48.infrastructure.messaging.event.*;
 import br.com.oficina48.infrastructure.properties.SqsProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,72 +17,50 @@ public class FaturamentoProducer {
 
     private final SqsTemplate sqsTemplate;
     private final SqsProperties sqsProperties;
-    private final ObjectMapper objectMapper;
+    private final EventMapper eventMapper;
 
     public FaturamentoProducer(
             SqsTemplate sqsTemplate,
             SqsProperties sqsProperties,
-            ObjectMapper objectMapper
+            EventMapper eventMapper
     ) {
         this.sqsTemplate = sqsTemplate;
         this.sqsProperties = sqsProperties;
-        this.objectMapper = objectMapper;
+        this.eventMapper = eventMapper;
     }
 
     public void enviarFaturamentoPendente(FaturamentoPendenteEvent evento) {
         String queue = sqsProperties.queues().faturamentoPendente();
-
-        try {
-            String json = objectMapper.writeValueAsString(evento);
-
-            log.info("Enviando evento FaturamentoPendenteEvent para fila {}. Payload: {}", queue, json);
-
-            sqsTemplate.send(to -> to
-                    .queue(queue)
-                    .payload(json)
-            );
-
-        } catch (JsonProcessingException e) {
-            log.error("Erro ao serializar FaturamentoPendenteEvent", e);
-            throw new RuntimeException(e);
-        }
+        String json = this.eventMapper.toJson(evento);
+        log.info("Enviando evento FaturamentoPendenteEvent para fila {}. Payload: {}", queue, json);
+        this.send(queue, json);
     }
 
     public void enviarFaturamentoConcluido(FaturamentoConcluidoEvent evento) {
         String queue = sqsProperties.queues().faturamentoConcluido();
-
-        try {
-            String json = objectMapper.writeValueAsString(evento);
-
-            log.info("Enviando evento FaturamentoConcluidoEvent para fila {}. Payload: {}", queue, json);
-
-            sqsTemplate.send(to -> to
-                    .queue(queue)
-                    .payload(json)
-            );
-
-        } catch (JsonProcessingException e) {
-            log.error("Erro ao serializar FaturamentoConcluidoEvent", e);
-            throw new RuntimeException(e);
-        }
+        String json = this.eventMapper.toJson(evento);
+        log.info("Enviando evento FaturamentoConcluidoEvent para fila {}. Payload: {}", queue, json);
+        this.send(queue, json);
     }
 
     public void enviarFaturamentoFalhou(FaturamentoFalhouEvent evento) {
         String queue = sqsProperties.queues().faturamentoFalhou();
-
-        try {
-            String json = objectMapper.writeValueAsString(evento);
-
-            log.info("Enviando evento FaturamentoFalhouEvent para fila {}. Payload: {}", queue, json);
-
-            sqsTemplate.send(to -> to
-                    .queue(queue)
-                    .payload(json)
-            );
-
-        } catch (JsonProcessingException e) {
-            log.error("Erro ao serializar FaturamentoFalhouEvent", e);
-            throw new RuntimeException(e);
-        }
+        String json = this.eventMapper.toJson(evento);
+        log.info("Enviando evento FaturamentoFalhouEvent para fila {}. Payload: {}", queue, json);
+        this.send(queue, json);
     }
+
+    public void enviarFalhaPagamento(FalhaPagamentoEvent evento) {
+        String queue = sqsProperties.queues().falhaPagamento();
+        String json = this.eventMapper.toJson(evento);
+        log.info("Enviando evento FalhaPagamentoEvent para fila {}. Payload: {}", queue, json);
+        this.send(queue, json);
+    }
+
+    private void send(String queue, String payload) {
+        this.sqsTemplate.send(to -> to
+                .queue(queue)
+                .payload(payload));
+    }
+
 }
