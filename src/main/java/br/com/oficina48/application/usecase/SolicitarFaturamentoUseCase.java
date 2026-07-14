@@ -153,7 +153,8 @@ public class SolicitarFaturamentoUseCase {
         sb.append("========================================\n");
         sb.append("         SOLICITAÇÃO DE PAGAMENTO       \n");
         sb.append("========================================\n");
-        sb.append(String.format("OS ID: %d\n", event.ordemServicoId()));
+        sb.append(String.format("Id da ordem de serviço: %d\n", event.ordemServicoId()));
+        sb.append(String.format("Id do faturamento: %d\n", faturamento.getId()));
         sb.append(String.format("Cliente: %s\n", event.clienteNome()));
         sb.append(String.format("E-mail: %s\n", event.clienteEmail()));
         sb.append(String.format("CPF: %s\n", event.clienteCpf()));

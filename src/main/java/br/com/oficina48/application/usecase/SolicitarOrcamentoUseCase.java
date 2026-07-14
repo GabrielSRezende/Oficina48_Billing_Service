@@ -41,21 +41,22 @@ public class SolicitarOrcamentoUseCase {
                 .status(OrcamentoStatus.PENDENTE)
                 .build());
 
-        orcamentoRepository.save(orcamento);
+        final var orcamentoSalvo = orcamentoRepository.save(orcamento);
         log.info("Orçamento registrado como PENDENTE para OS ID: {}, Valor Total: {}", 
                 event.ordemServicoId(), event.valorTotal());
 
         // Gera e salva o relatório textual simulado
-        String relatorio = gerarRelatorioSimulado(event);
+        String relatorio = gerarRelatorioSimulado(event, orcamentoSalvo.getId());
         documentoStorage.salvar("orcamentos", "orcamento_OS_" + event.ordemServicoId() + ".txt", relatorio);
     }
 
-    private String gerarRelatorioSimulado(OrcamentoSolicitadoEvent event) {
+    private String gerarRelatorioSimulado(OrcamentoSolicitadoEvent event, Long idOrcamento) {
         StringBuilder sb = new StringBuilder();
         sb.append("========================================\n");
         sb.append("      RELATÓRIO DE ORÇAMENTO SIMULADO    \n");
         sb.append("========================================\n");
-        sb.append(String.format("OS ID: %d\n", event.ordemServicoId()));
+        sb.append(String.format("Id da ordem de serviço: %d\n", event.ordemServicoId()));
+        sb.append(String.format("Id do orçamento: %d\n", idOrcamento));
         sb.append(String.format("Placa do Veículo: %s\n", event.placaVeiculo()));
         sb.append(String.format("Valor Total: R$ %s\n", event.valorTotal()));
         sb.append("----------------------------------------\n");
