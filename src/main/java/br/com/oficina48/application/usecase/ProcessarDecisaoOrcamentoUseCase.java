@@ -1,7 +1,6 @@
 package br.com.oficina48.application.usecase;
 
-import br.com.oficina48.domain.model.Orcamento;
-import br.com.oficina48.domain.model.OrcamentoStatus;
+import br.com.oficina48.domain.model.*;
 import br.com.oficina48.domain.repository.OrcamentoRepository;
 import br.com.oficina48.infrastructure.messaging.event.OrcamentoAprovadoEvent;
 import br.com.oficina48.infrastructure.messaging.event.OrcamentoReprovadoEvent;
@@ -51,7 +50,8 @@ public class ProcessarDecisaoOrcamentoUseCase {
             log.info("Orçamento ID: {} REPROVADO. Enviando notificação para o OS Service.", id);
             orcamentoProducer.enviarOrcamentoReprovado(new OrcamentoReprovadoEvent(
                     orcamento.getOrdemServicoId(),
-                    orcamento.getSagaId()
+                    orcamento.getSagaId(),
+                    MotivoErro.ORCAMENTO_REJEITADO_PELO_CLIENTE
             ));
         }
     }

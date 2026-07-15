@@ -29,8 +29,6 @@ public class SolicitarOrcamentoUseCase {
     public void executar(OrcamentoSolicitadoEvent event) {
         log.info("Iniciando processo de solicitação de orçamento para OS ID: {}", event.ordemServicoId());
 
-        log.info("ordem-orcamento");
-
         Optional<Orcamento> orcamentoExistente = orcamentoRepository
                 .findFirstByOrdemServicoIdOrderByDataCriacaoDesc(event.ordemServicoId());
 
