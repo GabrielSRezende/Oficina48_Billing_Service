@@ -28,6 +28,7 @@ app:
       faturamento-pendente: faturamento-pendente-test
       faturamento-concluido: faturamento-concluido-test
       faturamento-falhou: faturamento-falhou-test
+      falha-pagamento: falha-pagamento-test
       orcamento-solicitado: orcamento-solicitado-test
       orcamento-aprovado: orcamento-aprovado-test
       orcamento-reprovado: orcamento-reprovado-test

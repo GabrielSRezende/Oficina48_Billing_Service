@@ -4,9 +4,11 @@ import br.com.oficina48.domain.model.Faturamento;
 import br.com.oficina48.domain.model.FaturamentoStatus;
 import br.com.oficina48.domain.repository.FaturamentoRepository;
 import br.com.oficina48.infrastructure.integration.mercadopago.BankProvider;
+import br.com.oficina48.infrastructure.integration.mercadopago.FalhaPagamentoException;
 import br.com.oficina48.infrastructure.integration.mercadopago.dto.ChargeRequest;
 import br.com.oficina48.infrastructure.integration.mercadopago.dto.ChargeResponse;
 import br.com.oficina48.infrastructure.integration.mercadopago.dto.ChargeStatus;
+import br.com.oficina48.infrastructure.messaging.event.FalhaPagamentoEvent;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoConcluidoEvent;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoFalhouEvent;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoPendenteEvent;
@@ -90,6 +92,7 @@ class FaturamentoUseCasesTest {
         ));
         verify(faturamentoProducer, never()).enviarFaturamentoConcluido(any());
         verify(faturamentoProducer, never()).enviarFaturamentoFalhou(any());
+        verify(faturamentoProducer, never()).enviarFalhaPagamento(any());
     }
 
     @Test
@@ -121,8 +124,8 @@ class FaturamentoUseCasesTest {
     }
 
     @Test
-    @DisplayName("Solicitar Faturamento - Se falhar no gateway, deve salvar como falhado e enviar evento")
-    void deveSalvarComoFalhadoSeGatewayFalhar() {
+    @DisplayName("Solicitar Faturamento - Se falhar tecnicamente no Mercado Pago, deve salvar como falhado e enviar dois eventos")
+    void deveSalvarComoFalhadoSeMercadoPagoFalharTecnicamente() {
         FaturamentoSolicitadoEvent event = new FaturamentoSolicitadoEvent(
                 1L, "saga-1", BigDecimal.valueOf(150.00), "cliente@email.com", "Cliente Teste", "12345678901", "OS 1 Description"
         );
@@ -131,7 +134,7 @@ class FaturamentoUseCasesTest {
                 .thenReturn(Optional.empty());
 
         when(bankProvider.createPixCharge(any(ChargeRequest.class)))
-                .thenThrow(new RuntimeException("MP API offline"));
+                .thenThrow(new FalhaPagamentoException("MRCPAGO", "MP_API_EXCEPTION", "MP API offline", null));
 
         solicitarUseCase.executar(event);
 
@@ -144,6 +147,34 @@ class FaturamentoUseCasesTest {
         assertEquals(FaturamentoStatus.FALHOU, saved.getStatus());
 
         verify(faturamentoProducer).enviarFaturamentoFalhou(any(FaturamentoFalhouEvent.class));
+        verify(faturamentoProducer).enviarFalhaPagamento(new FalhaPagamentoEvent(
+                1L,
+                "saga-1",
+                BigDecimal.valueOf(150.00),
+                "MRCPAGO",
+                "MP_API_EXCEPTION",
+                "Falha ao gerar cobrança no gateway de pagamento: MP API offline"
+        ));
+    }
+
+    @Test
+    @DisplayName("Solicitar Faturamento - Se falhar genericamente, deve salvar como falhado e nao enviar falha-pagamento")
+    void deveSalvarComoFalhadoSemEnviarFalhaPagamentoSeErroForGenerico() {
+        FaturamentoSolicitadoEvent event = new FaturamentoSolicitadoEvent(
+                1L, "saga-1", BigDecimal.valueOf(150.00), "cliente@email.com", "Cliente Teste", "12345678901", "OS 1 Description"
+        );
+
+        when(faturamentoRepository.findFirstByOrdemServicoIdOrderByDataCriacaoDesc(1L))
+                .thenReturn(Optional.empty());
+
+        when(bankProvider.createPixCharge(any(ChargeRequest.class)))
+                .thenThrow(new RuntimeException("erro generico"));
+
+        solicitarUseCase.executar(event);
+
+        verify(faturamentoRepository).save(any(Faturamento.class));
+        verify(faturamentoProducer).enviarFaturamentoFalhou(any(FaturamentoFalhouEvent.class));
+        verify(faturamentoProducer, never()).enviarFalhaPagamento(any());
     }
 
     @Test

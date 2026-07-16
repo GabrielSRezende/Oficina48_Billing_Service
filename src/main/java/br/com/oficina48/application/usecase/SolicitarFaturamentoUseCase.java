@@ -4,11 +4,13 @@ import br.com.oficina48.domain.model.Faturamento;
 import br.com.oficina48.domain.model.FaturamentoStatus;
 import br.com.oficina48.domain.repository.FaturamentoRepository;
 import br.com.oficina48.infrastructure.integration.mercadopago.BankProvider;
+import br.com.oficina48.infrastructure.integration.mercadopago.FalhaPagamentoException;
 import br.com.oficina48.infrastructure.integration.mercadopago.dto.ChargeRequest;
 import br.com.oficina48.infrastructure.integration.mercadopago.dto.ChargeResponse;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoConcluidoEvent;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoFalhouEvent;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoPendenteEvent;
+import br.com.oficina48.infrastructure.messaging.event.FalhaPagamentoEvent;
 import br.com.oficina48.application.service.DocumentoStorage;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoSolicitadoEvent;
 import br.com.oficina48.infrastructure.messaging.producer.FaturamentoProducer;
@@ -98,19 +100,32 @@ public class SolicitarFaturamentoUseCase {
                     faturamento.getValor()
             ));
 
-        } catch (Exception e) {
-            log.error("Falha ao gerar cobrança no Mercado Pago para OS ID: {}. Registrando faturamento como FALHOU.", 
+        } catch (FalhaPagamentoException e) {
+            log.error("Falha técnica ao gerar cobrança no Mercado Pago para OS ID: {}. Registrando faturamento como FALHOU.",
                     event.ordemServicoId(), e);
 
-            Faturamento faturamento = faturamentoExistente.orElseGet(() -> Faturamento.builder()
-                    .ordemServicoId(event.ordemServicoId())
-                    .sagaId(event.sagaId())
-                    .valor(event.valor())
-                    .build());
+            registrarFaturamentoFalho(faturamentoExistente, event);
 
-            faturamento.setSagaId(event.sagaId());
-            faturamento.setStatus(FaturamentoStatus.FALHOU);
-            faturamentoRepository.save(faturamento);
+            String motivo = "Falha ao gerar cobrança no gateway de pagamento: " + e.getMessage();
+            faturamentoProducer.enviarFaturamentoFalhou(new FaturamentoFalhouEvent(
+                    event.ordemServicoId(),
+                    event.sagaId(),
+                    motivo,
+                    event.valor()
+            ));
+            faturamentoProducer.enviarFalhaPagamento(new FalhaPagamentoEvent(
+                    event.ordemServicoId(),
+                    event.sagaId(),
+                    event.valor(),
+                    e.getProvider(),
+                    e.getTipoErro(),
+                    motivo
+            ));
+        } catch (Exception e) {
+            log.error("Falha ao gerar cobrança no Mercado Pago para OS ID: {}. Registrando faturamento como FALHOU.",
+                    event.ordemServicoId(), e);
+
+            registrarFaturamentoFalho(faturamentoExistente, event);
 
             faturamentoProducer.enviarFaturamentoFalhou(new FaturamentoFalhouEvent(
                     event.ordemServicoId(),
@@ -121,12 +136,25 @@ public class SolicitarFaturamentoUseCase {
         }
     }
 
+    private void registrarFaturamentoFalho(Optional<Faturamento> faturamentoExistente, FaturamentoSolicitadoEvent event) {
+        Faturamento faturamento = faturamentoExistente.orElseGet(() -> Faturamento.builder()
+                .ordemServicoId(event.ordemServicoId())
+                .sagaId(event.sagaId())
+                .valor(event.valor())
+                .build());
+
+        faturamento.setSagaId(event.sagaId());
+        faturamento.setStatus(FaturamentoStatus.FALHOU);
+        faturamentoRepository.save(faturamento);
+    }
+
     private String gerarDocumentoFaturamento(FaturamentoSolicitadoEvent event, Faturamento faturamento) {
         StringBuilder sb = new StringBuilder();
         sb.append("========================================\n");
         sb.append("         SOLICITAÇÃO DE PAGAMENTO       \n");
         sb.append("========================================\n");
-        sb.append(String.format("OS ID: %d\n", event.ordemServicoId()));
+        sb.append(String.format("Id da ordem de serviço: %d\n", event.ordemServicoId()));
+        sb.append(String.format("Id do faturamento: %d\n", faturamento.getId()));
         sb.append(String.format("Cliente: %s\n", event.clienteNome()));
         sb.append(String.format("E-mail: %s\n", event.clienteEmail()));
         sb.append(String.format("CPF: %s\n", event.clienteCpf()));
