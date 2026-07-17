@@ -1,0 +1,162 @@
+{
+  "info": {
+    "name": "Oficina48 - Billing Service",
+    "description": "Collection de endpoints HTTP do microsserviço oficina48-billing-service.\n\nContexto:\n- Este serviço processa faturamento e pagamentos (Mercado Pago Sandbox) e se comunica de forma assíncrona via AWS SQS/LocalStack com o OS Service.\n- A maior parte do fluxo de negócio acontece via filas SQS (faturamento-solicitado, faturamento-pendente, faturamento-concluido, faturamento-falhou, orcamento-solicitado, orcamento-aprovado, orcamento-reprovado). Esta collection cobre apenas os endpoints HTTP expostos pelo serviço.\n- Server context-path: /api (definido em application.yml). Porta padrão local: 8082 (docker-compose) / 8083 (default do application.yml sem docker).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "b3f1a2e4-6c3a-4a9a-9d2b-oficina48billing"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8082",
+      "type": "string",
+      "description": "Host + porta do billing service. Ajuste para 8083 se rodar sem docker-compose (default do application.yml)."
+    },
+    {
+      "key": "contextPath",
+      "value": "/api",
+      "type": "string"
+    },
+    {
+      "key": "orcamentoId",
+      "value": "1",
+      "type": "string",
+      "description": "ID do orçamento persistido no billing service (gerado ao consumir o evento orcamento-solicitado)."
+    },
+    {
+      "key": "mercadoPagoPaymentId",
+      "value": "123456789",
+      "type": "string",
+      "description": "ID de pagamento retornado pelo Mercado Pago Sandbox (obtido após simular o pagamento no checkout)."
+    }
+  ],
+  "item": [
+    {
+      "name": "Orçamento",
+      "description": "Endpoints relacionados à decisão do cliente sobre um orçamento (aprovação/reprovação).",
+      "item": [
+        {
+          "name": "Processar Decisão do Orçamento (Aprovar)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"aprovado\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{contextPath}}/orcamentos/{{orcamentoId}}/decisao",
+              "host": ["{{baseUrl}}{{contextPath}}"],
+              "path": ["orcamentos", "{{orcamentoId}}", "decisao"]
+            },
+            "description": "Recebe a decisão do cliente sobre um orçamento.\n\nFluxo: atualiza o status do orçamento no banco e dispara o evento `orcamento-aprovado` (fila SQS) para o OS Service.\n\nResponses:\n- 204 No Content: decisão processada com sucesso.\n- 400 Bad Request: campo `aprovado` ausente/nulo.\n- 404 Not Found: orçamento não encontrado para o ID informado."
+          },
+          "response": []
+        },
+        {
+          "name": "Processar Decisão do Orçamento (Reprovar)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"aprovado\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{contextPath}}/orcamentos/{{orcamentoId}}/decisao",
+              "host": ["{{baseUrl}}{{contextPath}}"],
+              "path": ["orcamentos", "{{orcamentoId}}", "decisao"]
+            },
+            "description": "Recebe a decisão do cliente sobre um orçamento.\n\nFluxo: atualiza o status do orçamento no banco e dispara o evento `orcamento-reprovado` (fila SQS) para o OS Service, interrompendo a saga."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Mercado Pago",
+      "description": "Endpoint de integração/webhook do gateway de pagamento Mercado Pago.",
+      "item": [
+        {
+          "name": "Webhook - Pagamento Aprovado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"payment.created\",\n  \"api_version\": \"v1\",\n  \"data\": {\n    \"id\": \"{{mercadoPagoPaymentId}}\"\n  },\n  \"date_created\": \"2026-07-17T18:15:00Z\",\n  \"id\": 987654321,\n  \"live_mode\": true,\n  \"type\": \"payment\",\n  \"user_id\": \"12345678\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{contextPath}}/mercadopago/webhook",
+              "host": ["{{baseUrl}}{{contextPath}}"],
+              "path": ["mercadopago", "webhook"]
+            },
+            "description": "Simula a notificação de webhook enviada pelo Mercado Pago quando um pagamento é criado/atualizado.\n\nO serviço extrai `data.id` (ID do pagamento), consulta o status real na API do Mercado Pago (back-channel) e, se aprovado:\n- Atualiza o status do faturamento para concluído.\n- Publica o evento `faturamento-concluido` na fila SQS.\n\nPara testar de fato o cenário de aprovação, use um `mercadoPagoPaymentId` de um pagamento realmente aprovado no Sandbox (nome do titular do cartão de teste: APRO)."
+          },
+          "response": []
+        },
+        {
+          "name": "Webhook - Pagamento Recusado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"payment.created\",\n  \"api_version\": \"v1\",\n  \"data\": {\n    \"id\": \"{{mercadoPagoPaymentId}}\"\n  },\n  \"date_created\": \"2026-07-17T18:15:00Z\",\n  \"id\": 987654322,\n  \"live_mode\": true,\n  \"type\": \"payment\",\n  \"user_id\": \"12345678\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{contextPath}}/mercadopago/webhook",
+              "host": ["{{baseUrl}}{{contextPath}}"],
+              "path": ["mercadopago", "webhook"]
+            },
+            "description": "Simula a notificação de webhook para um pagamento recusado/rejeitado.\n\nSe o status consultado na API do Mercado Pago não for aprovado, o serviço publica o evento `faturamento-falhou` na fila SQS.\n\nPara testar o cenário de falha, use um `mercadoPagoPaymentId` de um pagamento recusado no Sandbox (ex: nome do titular OTHE, FUND, CALL, SECU, EXPI ou FORM)."
+          },
+          "response": []
+        },
+        {
+          "name": "Webhook - Notificação Ignorada (tipo não suportado)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"subscription.created\",\n  \"api_version\": \"v1\",\n  \"data\": {\n    \"id\": \"{{mercadoPagoPaymentId}}\"\n  },\n  \"date_created\": \"2026-07-17T18:15:00Z\",\n  \"id\": 987654323,\n  \"live_mode\": true,\n  \"type\": \"subscription_preapproval\",\n  \"user_id\": \"12345678\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{contextPath}}/mercadopago/webhook",
+              "host": ["{{baseUrl}}{{contextPath}}"],
+              "path": ["mercadopago", "webhook"]
+            },
+            "description": "Exemplo de payload que o serviço loga e ignora, pois `type`/`action` não correspondem a um evento de pagamento (`payment` / `payment.*`).\n\nMesmo assim retorna 200 OK, já que o Mercado Pago exige um retorno 2xx para não reenviar o webhook."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
