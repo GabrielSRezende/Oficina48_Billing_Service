@@ -236,4 +236,152 @@ class FaturamentoUseCasesTest {
         verify(faturamentoRepository).save(faturamento);
         verify(faturamentoProducer).enviarFaturamentoFalhou(any(FaturamentoFalhouEvent.class));
     }
+
+    @Test
+    @DisplayName("Confirmar Pagamento - Deve buscar faturamento por externalReference quando não encontrado por pagamentoId")
+    void deveBuscarFaturamentoPorExternalReferenceQuandoNaoEncontradoPorPagamentoId() {
+        ChargeStatus status = ChargeStatus.builder()
+                .status("approved")
+                .paid(true)
+                .externalReference("12")
+                .transactionId("mp-999")
+                .build();
+
+        Faturamento faturamento = Faturamento.builder()
+                .ordemServicoId(12L)
+                .sagaId("saga-12")
+                .valor(BigDecimal.valueOf(100.00))
+                .status(FaturamentoStatus.PENDENTE)
+                .build();
+
+        when(bankProvider.checkStatus("mp-999", null)).thenReturn(status);
+        when(faturamentoRepository.findByPagamentoId("mp-999")).thenReturn(Optional.empty());
+        when(faturamentoRepository.findFirstByOrdemServicoIdOrderByDataCriacaoDesc(12L))
+                .thenReturn(Optional.of(faturamento));
+
+        confirmarUseCase.confirmarPorMercadoPagoId("mp-999");
+
+        assertEquals(FaturamentoStatus.CONCLUIDO, faturamento.getStatus());
+        assertEquals("mp-999", faturamento.getPagamentoId());
+        verify(faturamentoRepository).save(faturamento);
+        verify(faturamentoProducer).enviarFaturamentoConcluido(any());
+    }
+
+    @Test
+    @DisplayName("Confirmar Pagamento - Deve ignorar externalReference inválido (não numérico)")
+    void deveIgnorarExternalReferenceInvalido() {
+        ChargeStatus status = ChargeStatus.builder()
+                .status("approved")
+                .paid(true)
+                .externalReference("not-a-number")
+                .transactionId("mp-999")
+                .build();
+
+        when(bankProvider.checkStatus("mp-999", null)).thenReturn(status);
+        when(faturamentoRepository.findByPagamentoId("mp-999")).thenReturn(Optional.empty());
+
+        confirmarUseCase.confirmarPorMercadoPagoId("mp-999");
+
+        verify(faturamentoRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Confirmar Pagamento - Deve retornar imediatamente se o faturamento não for localizado")
+    void deveRetornarSeFaturamentoNaoEncontrado() {
+        ChargeStatus status = ChargeStatus.builder()
+                .status("approved")
+                .paid(true)
+                .externalReference("12")
+                .transactionId("mp-999")
+                .build();
+
+        when(bankProvider.checkStatus("mp-999", null)).thenReturn(status);
+        when(faturamentoRepository.findByPagamentoId("mp-999")).thenReturn(Optional.empty());
+        when(faturamentoRepository.findFirstByOrdemServicoIdOrderByDataCriacaoDesc(12L))
+                .thenReturn(Optional.empty());
+
+        confirmarUseCase.confirmarPorMercadoPagoId("mp-999");
+
+        verify(faturamentoRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Confirmar Pagamento - Deve retornar se o faturamento localizado já estiver CONCLUIDO")
+    void deveRetornarSeFaturamentoJaConcluido() {
+        ChargeStatus status = ChargeStatus.builder()
+                .status("approved")
+                .paid(true)
+                .externalReference("12")
+                .transactionId("mp-999")
+                .build();
+
+        Faturamento faturamento = Faturamento.builder()
+                .ordemServicoId(12L)
+                .status(FaturamentoStatus.CONCLUIDO)
+                .build();
+
+        when(bankProvider.checkStatus("mp-999", null)).thenReturn(status);
+        when(faturamentoRepository.findByPagamentoId("mp-999")).thenReturn(Optional.of(faturamento));
+
+        confirmarUseCase.confirmarPorMercadoPagoId("mp-999");
+
+        verify(faturamentoRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Confirmar Pagamento - Deve apenas logar e não fazer nada se o status for pendente")
+    void deveIgnorarSeStatusForPendente() {
+        ChargeStatus status = ChargeStatus.builder()
+                .status("pending")
+                .paid(false)
+                .externalReference("12")
+                .transactionId("mp-999")
+                .build();
+
+        Faturamento faturamento = Faturamento.builder()
+                .ordemServicoId(12L)
+                .status(FaturamentoStatus.PENDENTE)
+                .build();
+
+        when(bankProvider.checkStatus("mp-999", null)).thenReturn(status);
+        when(faturamentoRepository.findByPagamentoId("mp-999")).thenReturn(Optional.of(faturamento));
+
+        confirmarUseCase.confirmarPorMercadoPagoId("mp-999");
+
+        verify(faturamentoRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Solicitar Faturamento - Deve atualizar faturamento pendente existente em vez de criar um novo")
+    void deveAtualizarFaturamentoPendenteExistente() {
+        FaturamentoSolicitadoEvent event = new FaturamentoSolicitadoEvent(
+                1L, "saga-1", BigDecimal.valueOf(150.00), "cliente@email.com", "Cliente Teste", "12345678901", null
+        );
+
+        Faturamento faturamentoExistente = Faturamento.builder()
+                .ordemServicoId(1L)
+                .sagaId("saga-old")
+                .valor(BigDecimal.valueOf(100.00))
+                .status(FaturamentoStatus.PENDENTE)
+                .build();
+
+        when(faturamentoRepository.findFirstByOrdemServicoIdOrderByDataCriacaoDesc(1L))
+                .thenReturn(Optional.of(faturamentoExistente));
+
+        ChargeResponse chargeResponse = ChargeResponse.builder()
+                .transactionId("mp-12345")
+                .paymentLink("http://pagamento.link")
+                .externalReference("1")
+                .status("pending")
+                .build();
+
+        when(bankProvider.createPixCharge(any(ChargeRequest.class))).thenReturn(chargeResponse);
+
+        solicitarUseCase.executar(event);
+
+        verify(faturamentoRepository).save(faturamentoExistente);
+        assertEquals("saga-1", faturamentoExistente.getSagaId());
+        assertEquals("mp-12345", faturamentoExistente.getPagamentoId());
+        assertEquals(BigDecimal.valueOf(100.00), faturamentoExistente.getValor());
+    }
 }
