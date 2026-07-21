@@ -32,12 +32,20 @@ public class SolicitarOrcamentoUseCase {
         Optional<Orcamento> orcamentoExistente = orcamentoRepository
                 .findFirstByOrdemServicoIdOrderByDataCriacaoDesc(event.ordemServicoId());
 
-        Orcamento orcamento = orcamentoExistente.orElseGet(() -> Orcamento.builder()
-                .ordemServicoId(event.ordemServicoId())
-                .sagaId(event.sagaId())
-                .valorTotal(event.valorTotal())
-                .status(OrcamentoStatus.PENDENTE)
-                .build());
+        Orcamento orcamento;
+        if (orcamentoExistente.isPresent()) {
+            orcamento = orcamentoExistente.get();
+            orcamento.setSagaId(event.sagaId());
+            orcamento.setValorTotal(event.valorTotal());
+            orcamento.setStatus(OrcamentoStatus.PENDENTE);
+        } else {
+            orcamento = Orcamento.builder()
+                    .ordemServicoId(event.ordemServicoId())
+                    .sagaId(event.sagaId())
+                    .valorTotal(event.valorTotal())
+                    .status(OrcamentoStatus.PENDENTE)
+                    .build();
+        }
 
         final var orcamentoSalvo = orcamentoRepository.save(orcamento);
         log.info("Orçamento registrado como PENDENTE para OS ID: {}, Valor Total: {}", 

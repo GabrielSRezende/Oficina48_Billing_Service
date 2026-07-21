@@ -1,5 +1,6 @@
 package br.com.oficina48.application.usecase;
 
+import br.com.oficina48.domain.model.MotivoErro;
 import br.com.oficina48.domain.model.Orcamento;
 import br.com.oficina48.domain.model.OrcamentoStatus;
 import br.com.oficina48.domain.repository.OrcamentoRepository;
@@ -44,6 +45,13 @@ class OrcamentoUseCasesTest {
     void setUp() {
         solicitarOrcamentoUseCase = new SolicitarOrcamentoUseCase(orcamentoRepository, documentoStorage);
         processarDecisaoOrcamentoUseCase = new ProcessarDecisaoOrcamentoUseCase(orcamentoRepository, orcamentoProducer);
+        lenient().when(orcamentoRepository.save(any())).thenAnswer(invocation -> {
+            Orcamento o = invocation.getArgument(0);
+            if (o.getId() == null) {
+                o.setId(1L);
+            }
+            return o;
+        });
     }
 
     @Test
@@ -111,7 +119,7 @@ class OrcamentoUseCasesTest {
 
         assertEquals(OrcamentoStatus.REPROVADO, orcamento.getStatus());
         verify(orcamentoRepository).save(orcamento);
-        verify(orcamentoProducer).enviarOrcamentoReprovado(new OrcamentoReprovadoEvent(10L, "saga-10"));
+        verify(orcamentoProducer).enviarOrcamentoReprovado(new OrcamentoReprovadoEvent(10L, "saga-10", MotivoErro.ORCAMENTO_REJEITADO_PELO_CLIENTE));
         verify(orcamentoProducer, never()).enviarOrcamentoAprovado(any());
     }
 

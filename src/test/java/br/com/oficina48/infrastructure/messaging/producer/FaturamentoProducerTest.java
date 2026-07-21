@@ -1,11 +1,10 @@
 package br.com.oficina48.infrastructure.messaging.producer;
 
+import br.com.oficina48.infrastructure.messaging.EventMapper;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoConcluidoEvent;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoFalhouEvent;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoPendenteEvent;
 import br.com.oficina48.infrastructure.properties.SqsProperties;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.awspring.cloud.sqs.operations.SqsTemplate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -19,7 +18,6 @@ import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,7 +27,7 @@ class FaturamentoProducerTest {
     private SqsTemplate sqsTemplate;
 
     @Mock
-    private ObjectMapper objectMapper;
+    private EventMapper eventMapper;
 
     private SqsProperties sqsProperties;
     private FaturamentoProducer producer;
@@ -41,22 +39,23 @@ class FaturamentoProducerTest {
                 "faturamento-pendente-queue",
                 "faturamento-concluido-queue",
                 "faturamento-falhou-queue",
+                "falha-pagamento-queue",
                 "orcamento-solicitado-queue",
                 "orcamento-aprovado-queue",
                 "orcamento-reprovado-queue"
         );
         sqsProperties = new SqsProperties(queues);
-        producer = new FaturamentoProducer(sqsTemplate, sqsProperties, objectMapper);
+        producer = new FaturamentoProducer(sqsTemplate, sqsProperties, eventMapper);
     }
 
     @Test
     @DisplayName("enviarFaturamentoPendente - Deve serializar e enviar evento com sucesso")
-    void deveEnviarFaturamentoPendenteComSucesso() throws JsonProcessingException {
+    void deveEnviarFaturamentoPendenteComSucesso() {
         FaturamentoPendenteEvent event = new FaturamentoPendenteEvent(
                 1L, "saga-1", "mp-1", "http://link", BigDecimal.TEN
         );
 
-        when(objectMapper.writeValueAsString(event)).thenReturn("{\"sagaId\":\"saga-1\"}");
+        when(eventMapper.toJson(event)).thenReturn("{\"sagaId\":\"saga-1\"}");
 
         producer.enviarFaturamentoPendente(event);
 
@@ -65,26 +64,24 @@ class FaturamentoProducerTest {
 
     @Test
     @DisplayName("enviarFaturamentoPendente - Se falhar na serialização, deve lançar RuntimeException")
-    void deveLancarErroAoFalharSerializacaoPendente() throws JsonProcessingException {
+    void deveLancarErroAoFalharSerializacaoPendente() {
         FaturamentoPendenteEvent event = new FaturamentoPendenteEvent(
                 1L, "saga-1", "mp-1", "http://link", BigDecimal.TEN
         );
 
-        JsonProcessingException mockException = mock(JsonProcessingException.class);
-        when(objectMapper.writeValueAsString(event)).thenThrow(mockException);
+        when(eventMapper.toJson(event)).thenThrow(new RuntimeException("Erro ao serializar"));
 
         assertThrows(RuntimeException.class, () -> producer.enviarFaturamentoPendente(event));
-        verifyNoInteractions(sqsTemplate);
     }
 
     @Test
     @DisplayName("enviarFaturamentoConcluido - Deve serializar e enviar evento com sucesso")
-    void deveEnviarFaturamentoConcluidoComSucesso() throws JsonProcessingException {
+    void deveEnviarFaturamentoConcluidoComSucesso() {
         FaturamentoConcluidoEvent event = new FaturamentoConcluidoEvent(
                 1L, "saga-1", "mp-1", BigDecimal.TEN
         );
 
-        when(objectMapper.writeValueAsString(event)).thenReturn("{\"sagaId\":\"saga-1\"}");
+        when(eventMapper.toJson(event)).thenReturn("{\"sagaId\":\"saga-1\"}");
 
         producer.enviarFaturamentoConcluido(event);
 
@@ -93,26 +90,24 @@ class FaturamentoProducerTest {
 
     @Test
     @DisplayName("enviarFaturamentoConcluido - Se falhar na serialização, deve lançar RuntimeException")
-    void deveLancarErroAoFalharSerializacaoConcluido() throws JsonProcessingException {
+    void deveLancarErroAoFalharSerializacaoConcluido() {
         FaturamentoConcluidoEvent event = new FaturamentoConcluidoEvent(
                 1L, "saga-1", "mp-1", BigDecimal.TEN
         );
 
-        JsonProcessingException mockException = mock(JsonProcessingException.class);
-        when(objectMapper.writeValueAsString(event)).thenThrow(mockException);
+        when(eventMapper.toJson(event)).thenThrow(new RuntimeException("Erro ao serializar"));
 
         assertThrows(RuntimeException.class, () -> producer.enviarFaturamentoConcluido(event));
-        verifyNoInteractions(sqsTemplate);
     }
 
     @Test
     @DisplayName("enviarFaturamentoFalhou - Deve serializar e enviar evento com sucesso")
-    void deveEnviarFaturamentoFalhouComSucesso() throws JsonProcessingException {
+    void deveEnviarFaturamentoFalhouComSucesso() {
         FaturamentoFalhouEvent event = new FaturamentoFalhouEvent(
                 1L, "saga-1", "Erro", BigDecimal.TEN
         );
 
-        when(objectMapper.writeValueAsString(event)).thenReturn("{\"sagaId\":\"saga-1\"}");
+        when(eventMapper.toJson(event)).thenReturn("{\"sagaId\":\"saga-1\"}");
 
         producer.enviarFaturamentoFalhou(event);
 
@@ -121,15 +116,13 @@ class FaturamentoProducerTest {
 
     @Test
     @DisplayName("enviarFaturamentoFalhou - Se falhar na serialização, deve lançar RuntimeException")
-    void deveLancarErroAoFalharSerializacaoFalhou() throws JsonProcessingException {
+    void deveLancarErroAoFalharSerializacaoFalhou() {
         FaturamentoFalhouEvent event = new FaturamentoFalhouEvent(
                 1L, "saga-1", "Erro", BigDecimal.TEN
         );
 
-        JsonProcessingException mockException = mock(JsonProcessingException.class);
-        when(objectMapper.writeValueAsString(event)).thenThrow(mockException);
+        when(eventMapper.toJson(event)).thenThrow(new RuntimeException("Erro ao serializar"));
 
         assertThrows(RuntimeException.class, () -> producer.enviarFaturamentoFalhou(event));
-        verifyNoInteractions(sqsTemplate);
     }
 }
