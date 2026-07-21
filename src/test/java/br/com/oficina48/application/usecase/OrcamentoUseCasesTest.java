@@ -1,7 +1,6 @@
 package br.com.oficina48.application.usecase;
 
-import br.com.oficina48.domain.model.Orcamento;
-import br.com.oficina48.domain.model.OrcamentoStatus;
+import br.com.oficina48.domain.model.*;
 import br.com.oficina48.domain.repository.OrcamentoRepository;
 import br.com.oficina48.infrastructure.messaging.event.OrcamentoAprovadoEvent;
 import br.com.oficina48.infrastructure.messaging.event.OrcamentoReprovadoEvent;
@@ -23,6 +22,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -44,6 +44,7 @@ class OrcamentoUseCasesTest {
     void setUp() {
         solicitarOrcamentoUseCase = new SolicitarOrcamentoUseCase(orcamentoRepository, documentoStorage);
         processarDecisaoOrcamentoUseCase = new ProcessarDecisaoOrcamentoUseCase(orcamentoRepository, orcamentoProducer);
+        lenient().when(orcamentoRepository.save(any(Orcamento.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test
@@ -111,7 +112,7 @@ class OrcamentoUseCasesTest {
 
         assertEquals(OrcamentoStatus.REPROVADO, orcamento.getStatus());
         verify(orcamentoRepository).save(orcamento);
-        verify(orcamentoProducer).enviarOrcamentoReprovado(new OrcamentoReprovadoEvent(10L, "saga-10"));
+        verify(orcamentoProducer).enviarOrcamentoReprovado(new OrcamentoReprovadoEvent(10L, "saga-10", MotivoErro.ORCAMENTO_REJEITADO_PELO_CLIENTE));
         verify(orcamentoProducer, never()).enviarOrcamentoAprovado(any());
     }
 

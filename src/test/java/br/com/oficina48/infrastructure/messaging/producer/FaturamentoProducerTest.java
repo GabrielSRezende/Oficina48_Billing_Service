@@ -1,5 +1,7 @@
 package br.com.oficina48.infrastructure.messaging.producer;
 
+import br.com.oficina48.infrastructure.messaging.EventMapper;
+import br.com.oficina48.infrastructure.messaging.event.FalhaPagamentoEvent;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoConcluidoEvent;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoFalhouEvent;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoPendenteEvent;
@@ -31,6 +33,8 @@ class FaturamentoProducerTest {
     @Mock
     private ObjectMapper objectMapper;
 
+    private EventMapper eventMapper;
+
     private SqsProperties sqsProperties;
     private FaturamentoProducer producer;
 
@@ -41,12 +45,14 @@ class FaturamentoProducerTest {
                 "faturamento-pendente-queue",
                 "faturamento-concluido-queue",
                 "faturamento-falhou-queue",
+                "falha-pagamento-queue",
                 "orcamento-solicitado-queue",
                 "orcamento-aprovado-queue",
                 "orcamento-reprovado-queue"
         );
         sqsProperties = new SqsProperties(queues);
-        producer = new FaturamentoProducer(sqsTemplate, sqsProperties, objectMapper);
+        eventMapper = new EventMapper(objectMapper);
+        producer = new FaturamentoProducer(sqsTemplate, sqsProperties, eventMapper);
     }
 
     @Test
@@ -130,6 +136,34 @@ class FaturamentoProducerTest {
         when(objectMapper.writeValueAsString(event)).thenThrow(mockException);
 
         assertThrows(RuntimeException.class, () -> producer.enviarFaturamentoFalhou(event));
+        verifyNoInteractions(sqsTemplate);
+    }
+
+    @Test
+    @DisplayName("enviarFalhaPagamento - Deve serializar e enviar evento com sucesso")
+    void deveEnviarFalhaPagamentoComSucesso() throws JsonProcessingException {
+        FalhaPagamentoEvent event = new FalhaPagamentoEvent(
+                1L, "saga-1", BigDecimal.TEN, "MRCPAGO", "MP_API_EXCEPTION", "Falha no gateway"
+        );
+
+        when(objectMapper.writeValueAsString(event)).thenReturn("{\"sagaId\":\"saga-1\"}");
+
+        producer.enviarFalhaPagamento(event);
+
+        verify(sqsTemplate).send(any(Consumer.class));
+    }
+
+    @Test
+    @DisplayName("enviarFalhaPagamento - Se falhar na serialização, deve lançar RuntimeException")
+    void deveLancarErroAoFalharSerializacaoFalhaPagamento() throws JsonProcessingException {
+        FalhaPagamentoEvent event = new FalhaPagamentoEvent(
+                1L, "saga-1", BigDecimal.TEN, "MRCPAGO", "MP_API_EXCEPTION", "Falha no gateway"
+        );
+
+        JsonProcessingException mockException = mock(JsonProcessingException.class);
+        when(objectMapper.writeValueAsString(event)).thenThrow(mockException);
+
+        assertThrows(RuntimeException.class, () -> producer.enviarFalhaPagamento(event));
         verifyNoInteractions(sqsTemplate);
     }
 }

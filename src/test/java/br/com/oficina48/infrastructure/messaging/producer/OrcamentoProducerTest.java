@@ -1,5 +1,6 @@
 package br.com.oficina48.infrastructure.messaging.producer;
 
+import br.com.oficina48.infrastructure.messaging.EventMapper;
 import br.com.oficina48.infrastructure.messaging.event.OrcamentoAprovadoEvent;
 import br.com.oficina48.infrastructure.messaging.event.OrcamentoReprovadoEvent;
 import br.com.oficina48.infrastructure.properties.SqsProperties;
@@ -28,6 +29,8 @@ class OrcamentoProducerTest {
     @Mock
     private ObjectMapper objectMapper;
 
+    private EventMapper eventMapper;
+
     private SqsProperties sqsProperties;
     private OrcamentoProducer producer;
 
@@ -38,12 +41,14 @@ class OrcamentoProducerTest {
                 "faturamento-pendente-queue",
                 "faturamento-concluido-queue",
                 "faturamento-falhou-queue",
+                "falha-pagamento-queue",
                 "orcamento-solicitado-queue",
                 "orcamento-aprovado-queue",
                 "orcamento-reprovado-queue"
         );
         sqsProperties = new SqsProperties(queues);
-        producer = new OrcamentoProducer(sqsTemplate, sqsProperties, objectMapper);
+        eventMapper = new EventMapper(objectMapper);
+        producer = new OrcamentoProducer(sqsTemplate, sqsProperties, eventMapper);
     }
 
     @Test
@@ -73,7 +78,7 @@ class OrcamentoProducerTest {
     @Test
     @DisplayName("enviarOrcamentoReprovado - Deve serializar e enviar evento com sucesso")
     void deveEnviarOrcamentoReprovadoComSucesso() throws JsonProcessingException {
-        OrcamentoReprovadoEvent event = new OrcamentoReprovadoEvent(1L, "saga-1");
+        OrcamentoReprovadoEvent event = new OrcamentoReprovadoEvent(1L, "saga-1", null);
 
         when(objectMapper.writeValueAsString(event)).thenReturn("{\"sagaId\":\"saga-1\"}");
 
@@ -85,7 +90,7 @@ class OrcamentoProducerTest {
     @Test
     @DisplayName("enviarOrcamentoReprovado - Se falhar na serialização, deve lançar RuntimeException")
     void deveLancarErroAoFalharSerializacaoReprovado() throws JsonProcessingException {
-        OrcamentoReprovadoEvent event = new OrcamentoReprovadoEvent(1L, "saga-1");
+        OrcamentoReprovadoEvent event = new OrcamentoReprovadoEvent(1L, "saga-1", null);
 
         JsonProcessingException mockException = mock(JsonProcessingException.class);
         when(objectMapper.writeValueAsString(event)).thenThrow(mockException);
