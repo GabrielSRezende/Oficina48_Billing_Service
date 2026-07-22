@@ -250,6 +250,37 @@ docker exec -it oficina48-localstack awslocal sqs purge-queue --queue-url http:/
 
 ---
 
+## 🧪 Testes e Qualidade de Código
+
+### 1. Execução dos Testes Automatizados e BDD (Cucumber)
+Para executar a suíte completa de testes unitários, de integração e os cenários BDD com Cucumber:
+```bash
+mvn clean test
+```
+
+### 2. Relatório de Cobertura de Código (JaCoCo)
+A aplicação possui um **Quality Gate configurado com limite mínimo de 80% de cobertura de linhas**. Para validar a regra de qualidade e gerar o relatório:
+```bash
+mvn clean verify
+```
+O relatório visual em HTML estará disponível localmente em:
+`target/site/jacoco/index.html`
+
+### 3. Análise de Qualidade e Segurança (SonarQube / SonarCloud)
+O projeto conta com suporte à análise estática de código (Bugs, Code Smells, Vulnerabilidades e Security Hotspots).
+
+Para disparar a análise estática localmente via Maven:
+```bash
+mvn sonar:sonar \
+  -Dsonar.projectKey=oficina48_Billing_Service \
+  -Dsonar.projectName=Oficina48_Billing_Service \
+  -Dsonar.host.url=https://sonarcloud.io \
+  -Dsonar.token=<SEU_SONAR_TOKEN>
+```
+> 💡 **CI/CD:** Na esteira de CI/CD (GitHub Actions), a verificação do SonarQube é acionada automaticamente durante a execução do workflow `deploy.yml`.
+
+---
+
 ## 🔄 Fluxos de Negócio e Integração
 
 O sistema se comunica e gerencia o faturamento através de 4 fluxos principais:
