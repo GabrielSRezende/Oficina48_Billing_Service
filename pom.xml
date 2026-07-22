@@ -21,6 +21,7 @@
     <properties>
         <java.version>17</java.version>
         <spring-cloud-aws.version>3.3.0</spring-cloud-aws.version>
+        <cucumber.version>7.20.1</cucumber.version>
     </properties>
 
     <dependencyManagement>
@@ -103,6 +104,40 @@
             <artifactId>logstash-logback-encoder</artifactId>
             <version>7.4</version>
         </dependency>
+
+        <!-- CUCUMBER (BDD) -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-java</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-spring</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-junit-platform-engine</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-suite</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-suite-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -149,6 +184,7 @@
                         <exclude>**/br/com/oficina48/BillingServiceApplication.class</exclude>
                         <exclude>**/br/com/oficina48/infrastructure/config/**</exclude>
                         <exclude>**/br/com/oficina48/infrastructure/properties/**</exclude>
+                        <exclude>**/br/com/oficina48/bdd/**</exclude>
                     </excludes>
                 </configuration>
                 <executions>
