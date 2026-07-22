@@ -20,6 +20,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -30,6 +32,21 @@ jobs:
 
       - name: Build e Testes
         run: mvn -B clean verify
+
+      - name: SonarQube Analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          if [ -n "${SONAR_TOKEN}" ]; then
+            mvn -B sonar:sonar \
+              -Dsonar.projectKey=oficina48_Billing_Service \
+              -Dsonar.projectName=Oficina48_Billing_Service \
+              -Dsonar.host.url=${SONAR_HOST_URL:-https://sonarcloud.io} \
+              -Dsonar.token=${SONAR_TOKEN}
+          else
+            echo "SONAR_TOKEN secret não configurado nas Secrets do GitHub. Análise do SonarQube ignorada nesta execução."
+          fi
 
   deploy:
     runs-on: ubuntu-latest
