@@ -83,7 +83,7 @@ public class SolicitarOrcamentoUseCase {
                      item.nome(), item.quantidade(), item.preco(), item.subtotal())));
         }
         sb.append(DocumentoConstants.DIVIDER_HEADER);
-        log.info("Relatório de orçamento simulado gerado com sucesso:{}{}", System.lineSeparator(), sb.toString());
+        log.info("Relatório de orçamento simulado gerado com sucesso:{}{}", System.lineSeparator(), sb);
         return sb.toString();
     }
 }
