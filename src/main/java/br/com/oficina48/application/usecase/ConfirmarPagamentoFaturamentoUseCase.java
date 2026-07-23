@@ -9,6 +9,7 @@ import br.com.oficina48.infrastructure.messaging.event.FaturamentoConcluidoEvent
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoFalhouEvent;
 import br.com.oficina48.application.service.DocumentoStorage;
 import br.com.oficina48.infrastructure.messaging.producer.FaturamentoProducer;
+import br.com.oficina48.application.util.DocumentoConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -109,18 +110,18 @@ public class ConfirmarPagamentoFaturamentoUseCase {
 
     private String gerarReciboFaturamento(Faturamento faturamento) {
         StringBuilder sb = new StringBuilder();
-        sb.append("========================================\n");
-        sb.append("          RECIBO DE PAGAMENTO           \n");
-        sb.append("========================================\n");
-        sb.append(String.format("OS ID: %d\n", faturamento.getOrdemServicoId()));
-        sb.append(String.format("Valor Pago: R$ %s\n", faturamento.getValor()));
-        sb.append("Status: CONCLUÍDO\n");
-        sb.append("----------------------------------------\n");
-        sb.append(String.format("ID do Pagamento (Mercado Pago): %s\n", faturamento.getPagamentoId()));
-        sb.append(String.format("Link de Checkout original: %s\n", faturamento.getPagamentoLink()));
-        sb.append("----------------------------------------\n");
-        sb.append(String.format("Data da Confirmação: %s\n", java.time.LocalDateTime.now()));
-        sb.append("========================================\n");
+        sb.append(DocumentoConstants.DIVIDER_HEADER);
+        sb.append("          RECIBO DE PAGAMENTO           ").append(System.lineSeparator());
+        sb.append(DocumentoConstants.DIVIDER_HEADER);
+        sb.append(String.format("OS ID: %d%n", faturamento.getOrdemServicoId()));
+        sb.append(String.format("Valor Pago: R$ %s%n", faturamento.getValor()));
+        sb.append("Status: CONCLUÍDO").append(System.lineSeparator());
+        sb.append(DocumentoConstants.DIVIDER_SECTION);
+        sb.append(String.format("ID do Pagamento (Mercado Pago): %s%n", faturamento.getPagamentoId()));
+        sb.append(String.format("Link de Checkout original: %s%n", faturamento.getPagamentoLink()));
+        sb.append(DocumentoConstants.DIVIDER_SECTION);
+        sb.append(String.format("Data da Confirmação: %s%n", java.time.LocalDateTime.now()));
+        sb.append(DocumentoConstants.DIVIDER_HEADER);
         return sb.toString();
     }
 }

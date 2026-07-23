@@ -1,6 +1,7 @@
 package br.com.oficina48.application.usecase;
 
 import br.com.oficina48.application.service.DocumentoStorage;
+import br.com.oficina48.application.util.DocumentoConstants;
 import br.com.oficina48.domain.model.Orcamento;
 import br.com.oficina48.domain.model.OrcamentoStatus;
 import br.com.oficina48.domain.repository.OrcamentoRepository;
@@ -58,31 +59,31 @@ public class SolicitarOrcamentoUseCase {
 
     private String gerarRelatorioSimulado(OrcamentoSolicitadoEvent event, Long idOrcamento) {
         StringBuilder sb = new StringBuilder();
-        sb.append("========================================\n");
-        sb.append("      RELATÓRIO DE ORÇAMENTO SIMULADO    \n");
-        sb.append("========================================\n");
-        sb.append(String.format("Id da ordem de serviço: %d\n", event.ordemServicoId()));
-        sb.append(String.format("Id do orçamento: %d\n", idOrcamento));
-        sb.append(String.format("Placa do Veículo: %s\n", event.placaVeiculo()));
-        sb.append(String.format("Valor Total: R$ %s\n", event.valorTotal()));
-        sb.append("----------------------------------------\n");
-        sb.append("Serviços:\n");
+        sb.append(DocumentoConstants.DIVIDER_HEADER);
+        sb.append("      RELATÓRIO DE ORÇAMENTO SIMULADO    ").append(System.lineSeparator());
+        sb.append(DocumentoConstants.DIVIDER_HEADER);
+        sb.append(String.format("Id da ordem de serviço: %d%n", event.ordemServicoId()));
+        sb.append(String.format("Id do orçamento: %d%n", idOrcamento));
+        sb.append(String.format("Placa do Veículo: %s%n", event.placaVeiculo()));
+        sb.append(String.format("Valor Total: R$ %s%n", event.valorTotal()));
+        sb.append(DocumentoConstants.DIVIDER_SECTION);
+        sb.append("Serviços:").append(System.lineSeparator());
         if (event.servicos() != null) {
-            event.servicos().forEach(item -> sb.append(String.format("  - %s: %s x R$ %s (Subtotal: R$ %s)\n",
+            event.servicos().forEach(item -> sb.append(String.format(DocumentoConstants.FORMATO_ITEM_RELATORIO,
                      item.nome(), item.quantidade(), item.preco(), item.subtotal())));
         }
-        sb.append("Peças:\n");
+        sb.append("Peças:").append(System.lineSeparator());
         if (event.pecas() != null) {
-            event.pecas().forEach(item -> sb.append(String.format("  - %s: %s x R$ %s (Subtotal: R$ %s)\n",
+            event.pecas().forEach(item -> sb.append(String.format(DocumentoConstants.FORMATO_ITEM_RELATORIO,
                      item.nome(), item.quantidade(), item.preco(), item.subtotal())));
         }
-        sb.append("Insumos:\n");
+        sb.append("Insumos:").append(System.lineSeparator());
         if (event.insumos() != null) {
-            event.insumos().forEach(item -> sb.append(String.format("  - %s: %s x R$ %s (Subtotal: R$ %s)\n",
+            event.insumos().forEach(item -> sb.append(String.format(DocumentoConstants.FORMATO_ITEM_RELATORIO,
                      item.nome(), item.quantidade(), item.preco(), item.subtotal())));
         }
-        sb.append("========================================\n");
-        log.info("Relatório de orçamento simulado gerado com sucesso:\n{}", sb.toString());
+        sb.append(DocumentoConstants.DIVIDER_HEADER);
+        log.info("Relatório de orçamento simulado gerado com sucesso:{}{}", System.lineSeparator(), sb.toString());
         return sb.toString();
     }
 }
