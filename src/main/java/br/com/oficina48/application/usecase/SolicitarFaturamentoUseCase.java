@@ -165,7 +165,7 @@ public class SolicitarFaturamentoUseCase {
         sb.append(String.format("ID do Pagamento (Mercado Pago): %s%n", faturamento.getPagamentoId()));
         sb.append(String.format("Link de Pagamento: %s%n", faturamento.getPagamentoLink()));
         sb.append(DocumentoConstants.DIVIDER_SECTION);
-        sb.append(String.format("Data de Emissão: %s%n", java.time.LocalDateTime.now()));
+        sb.append(String.format("Data de Emissão: %s%n", java.time.LocalDateTime.now(DocumentoConstants.DEFAULT_ZONE_ID)));
         sb.append(DocumentoConstants.DIVIDER_HEADER);
         return sb.toString();
     }
