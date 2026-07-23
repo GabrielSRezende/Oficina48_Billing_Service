@@ -377,3 +377,39 @@ sequenceDiagram
         Note over OS,BL: O Orquestrador interrompe o fluxo ou dispara a compensação.
     end
 ```
+## 📊 Análise de Qualidade e Cobertura (SonarQube)
+
+### Métricas de Cobertura e Qualidade
+![SonarQube Dashboard](./docs/evidencias/sonarqube_01.png)
+![SonarQube Coverage](./docs/evidencias/sonarqube_02.png)
+
+---
+
+## 📬 Coleção de Requisições HTTP (Postman)
+
+O projeto disponibiliza uma coleção do Postman pronta para testar todos os endpoints HTTP expostos pelo microsserviço:
+
+- **Arquivo da Collection:** [`postman/Oficina48_Billing_Service.postman_collection.json`](./postman/Oficina48_Billing_Service.postman_collection.json)
+
+### Como Importar e Utilizar
+
+1. Abra o **Postman**.
+2. Clique no botão **Import** (no canto superior esquerdo).
+3. Selecione o arquivo `postman/Oficina48_Billing_Service.postman_collection.json`.
+4. A coleção **Oficina48 - Billing Service** será carregada contendo as requisições HTTP do serviço:
+   - **Orçamento:**
+     - `POST /api/orcamentos/{id}/decisao` (Aprovar orçamento)
+     - `POST /api/orcamentos/{id}/decisao` (Reprovar orçamento)
+   - **Mercado Pago:**
+     - `POST /api/mercadopago/webhook` (Simular webhook de pagamento)
+
+### Variáveis Pré-Configuradas na Collection
+
+| Variável | Valor Padrão | Descrição |
+| :--- | :--- | :--- |
+| `baseUrl` | `http://localhost:8082` | URL base do serviço (8082 com Docker / 8083 sem Docker) |
+| `contextPath` | `/api` | Prefixo global das rotas HTTP da aplicação |
+| `orcamentoId` | `1` | ID do orçamento persistido para teste de decisão |
+| `mercadoPagoPaymentId` | `123456789` | ID de pagamento do Sandbox para simulação no Webhook |
+
+
