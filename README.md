@@ -250,6 +250,37 @@ docker exec -it oficina48-localstack awslocal sqs purge-queue --queue-url http:/
 
 ---
 
+## 🧪 Testes e Qualidade de Código
+
+### 1. Execução dos Testes Automatizados e BDD (Cucumber)
+Para executar a suíte completa de testes unitários, de integração e os cenários BDD com Cucumber:
+```bash
+mvn clean test
+```
+
+### 2. Relatório de Cobertura de Código (JaCoCo)
+A aplicação possui um **Quality Gate configurado com limite mínimo de 80% de cobertura de linhas**. Para validar a regra de qualidade e gerar o relatório:
+```bash
+mvn clean verify
+```
+O relatório visual em HTML estará disponível localmente em:
+`target/site/jacoco/index.html`
+
+### 3. Análise de Qualidade e Segurança (SonarQube / SonarCloud)
+O projeto conta com suporte à análise estática de código (Bugs, Code Smells, Vulnerabilidades e Security Hotspots).
+
+Para disparar a análise estática localmente via Maven:
+```bash
+mvn sonar:sonar \
+  -Dsonar.projectKey=oficina48_Billing_Service \
+  -Dsonar.projectName=Oficina48_Billing_Service \
+  -Dsonar.host.url=https://sonarcloud.io \
+  -Dsonar.token=<SEU_SONAR_TOKEN>
+```
+> 💡 **CI/CD:** Na esteira de CI/CD (GitHub Actions), a verificação do SonarQube é acionada automaticamente durante a execução do workflow `deploy.yml`.
+
+---
+
 ## 🔄 Fluxos de Negócio e Integração
 
 O sistema se comunica e gerencia o faturamento através de 4 fluxos principais:
@@ -346,3 +377,39 @@ sequenceDiagram
         Note over OS,BL: O Orquestrador interrompe o fluxo ou dispara a compensação.
     end
 ```
+## 📊 Análise de Qualidade e Cobertura (SonarQube)
+
+### Métricas de Cobertura e Qualidade
+![SonarQube Dashboard](./docs/evidencias/sonarqube_01.png)
+![SonarQube Coverage](./docs/evidencias/sonarqube_02.png)
+
+---
+
+## 📬 Coleção de Requisições HTTP (Postman)
+
+O projeto disponibiliza uma coleção do Postman pronta para testar todos os endpoints HTTP expostos pelo microsserviço:
+
+- **Arquivo da Collection:** [`postman/Oficina48_Billing_Service.postman_collection.json`](./postman/Oficina48_Billing_Service.postman_collection.json)
+
+### Como Importar e Utilizar
+
+1. Abra o **Postman**.
+2. Clique no botão **Import** (no canto superior esquerdo).
+3. Selecione o arquivo `postman/Oficina48_Billing_Service.postman_collection.json`.
+4. A coleção **Oficina48 - Billing Service** será carregada contendo as requisições HTTP do serviço:
+   - **Orçamento:**
+     - `POST /api/orcamentos/{id}/decisao` (Aprovar orçamento)
+     - `POST /api/orcamentos/{id}/decisao` (Reprovar orçamento)
+   - **Mercado Pago:**
+     - `POST /api/mercadopago/webhook` (Simular webhook de pagamento)
+
+### Variáveis Pré-Configuradas na Collection
+
+| Variável | Valor Padrão | Descrição |
+| :--- | :--- | :--- |
+| `baseUrl` | `http://localhost:8082` | URL base do serviço (8082 com Docker / 8083 sem Docker) |
+| `contextPath` | `/api` | Prefixo global das rotas HTTP da aplicação |
+| `orcamentoId` | `1` | ID do orçamento persistido para teste de decisão |
+| `mercadoPagoPaymentId` | `123456789` | ID de pagamento do Sandbox para simulação no Webhook |
+
+

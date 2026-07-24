@@ -3,8 +3,6 @@ package br.com.oficina48.infrastructure.messaging.producer;
 import br.com.oficina48.infrastructure.messaging.EventMapper;
 import br.com.oficina48.infrastructure.messaging.event.*;
 import br.com.oficina48.infrastructure.properties.SqsProperties;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.awspring.cloud.sqs.operations.SqsTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -14,6 +14,7 @@ import br.com.oficina48.infrastructure.messaging.event.FalhaPagamentoEvent;
 import br.com.oficina48.application.service.DocumentoStorage;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoSolicitadoEvent;
 import br.com.oficina48.infrastructure.messaging.producer.FaturamentoProducer;
+import br.com.oficina48.application.util.DocumentoConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -150,22 +151,22 @@ public class SolicitarFaturamentoUseCase {
 
     private String gerarDocumentoFaturamento(FaturamentoSolicitadoEvent event, Faturamento faturamento) {
         StringBuilder sb = new StringBuilder();
-        sb.append("========================================\n");
-        sb.append("         SOLICITAÇÃO DE PAGAMENTO       \n");
-        sb.append("========================================\n");
-        sb.append(String.format("Id da ordem de serviço: %d\n", event.ordemServicoId()));
-        sb.append(String.format("Id do faturamento: %d\n", faturamento.getId()));
-        sb.append(String.format("Cliente: %s\n", event.clienteNome()));
-        sb.append(String.format("E-mail: %s\n", event.clienteEmail()));
-        sb.append(String.format("CPF: %s\n", event.clienteCpf()));
-        sb.append(String.format("Valor Total: R$ %s\n", event.valor()));
-        sb.append("Status: PENDENTE\n");
-        sb.append("----------------------------------------\n");
-        sb.append(String.format("ID do Pagamento (Mercado Pago): %s\n", faturamento.getPagamentoId()));
-        sb.append(String.format("Link de Pagamento: %s\n", faturamento.getPagamentoLink()));
-        sb.append("----------------------------------------\n");
-        sb.append(String.format("Data de Emissão: %s\n", java.time.LocalDateTime.now()));
-        sb.append("========================================\n");
+        sb.append(DocumentoConstants.DIVIDER_HEADER);
+        sb.append("         SOLICITAÇÃO DE PAGAMENTO       ").append(System.lineSeparator());
+        sb.append(DocumentoConstants.DIVIDER_HEADER);
+        sb.append(String.format("Id da ordem de serviço: %d%n", event.ordemServicoId()));
+        sb.append(String.format("Id do faturamento: %d%n", faturamento.getId()));
+        sb.append(String.format("Cliente: %s%n", event.clienteNome()));
+        sb.append(String.format("E-mail: %s%n", event.clienteEmail()));
+        sb.append(String.format("CPF: %s%n", event.clienteCpf()));
+        sb.append(String.format("Valor Total: R$ %s%n", event.valor()));
+        sb.append("Status: PENDENTE").append(System.lineSeparator());
+        sb.append(DocumentoConstants.DIVIDER_SECTION);
+        sb.append(String.format("ID do Pagamento (Mercado Pago): %s%n", faturamento.getPagamentoId()));
+        sb.append(String.format("Link de Pagamento: %s%n", faturamento.getPagamentoLink()));
+        sb.append(DocumentoConstants.DIVIDER_SECTION);
+        sb.append(String.format("Data de Emissão: %s%n", java.time.LocalDateTime.now(DocumentoConstants.DEFAULT_ZONE_ID)));
+        sb.append(DocumentoConstants.DIVIDER_HEADER);
         return sb.toString();
     }
 }

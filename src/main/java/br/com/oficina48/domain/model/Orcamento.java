@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Entity
 @Table(name = "tb_orcamento")
@@ -38,14 +39,16 @@ public class Orcamento {
     @Column(name = "sagaId")
     private String sagaId;
 
+    private static final ZoneId ZONE_ID = ZoneId.of("America/Sao_Paulo");
+
     @PrePersist
     protected void onCreate() {
-        dataCriacao = LocalDateTime.now();
-        dataAtualizacao = LocalDateTime.now();
+        dataCriacao = LocalDateTime.now(ZONE_ID);
+        dataAtualizacao = LocalDateTime.now(ZONE_ID);
     }
 
     @PreUpdate
     protected void onUpdate() {
-        dataAtualizacao = LocalDateTime.now();
+        dataAtualizacao = LocalDateTime.now(ZONE_ID);
     }
 }
