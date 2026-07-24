@@ -48,6 +48,10 @@ public class SolicitarOrcamentoUseCase {
                     .build();
         }
 
+        orcamento.setSagaId(event.sagaId());
+        orcamento.setValorTotal(event.valorTotal());
+        orcamento.setStatus(OrcamentoStatus.PENDENTE);
+
         final var orcamentoSalvo = orcamentoRepository.save(orcamento);
         log.info("Orçamento registrado como PENDENTE para OS ID: {}, Valor Total: {}", 
                 event.ordemServicoId(), event.valorTotal());

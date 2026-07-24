@@ -28,6 +28,8 @@ class OrcamentoProducerTest {
     @Mock
     private EventMapper eventMapper;
 
+    private EventMapper eventMapper;
+
     private SqsProperties sqsProperties;
     private OrcamentoProducer producer;
 

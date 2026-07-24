@@ -29,6 +29,8 @@ class FaturamentoProducerTest {
     @Mock
     private EventMapper eventMapper;
 
+    private EventMapper eventMapper;
+
     private SqsProperties sqsProperties;
     private FaturamentoProducer producer;
 
@@ -124,5 +126,33 @@ class FaturamentoProducerTest {
         when(eventMapper.toJson(event)).thenThrow(new RuntimeException("Erro ao serializar"));
 
         assertThrows(RuntimeException.class, () -> producer.enviarFaturamentoFalhou(event));
+    }
+
+    @Test
+    @DisplayName("enviarFalhaPagamento - Deve serializar e enviar evento com sucesso")
+    void deveEnviarFalhaPagamentoComSucesso() throws JsonProcessingException {
+        FalhaPagamentoEvent event = new FalhaPagamentoEvent(
+                1L, "saga-1", BigDecimal.TEN, "MRCPAGO", "MP_API_EXCEPTION", "Falha no gateway"
+        );
+
+        when(objectMapper.writeValueAsString(event)).thenReturn("{\"sagaId\":\"saga-1\"}");
+
+        producer.enviarFalhaPagamento(event);
+
+        verify(sqsTemplate).send(any(Consumer.class));
+    }
+
+    @Test
+    @DisplayName("enviarFalhaPagamento - Se falhar na serialização, deve lançar RuntimeException")
+    void deveLancarErroAoFalharSerializacaoFalhaPagamento() throws JsonProcessingException {
+        FalhaPagamentoEvent event = new FalhaPagamentoEvent(
+                1L, "saga-1", BigDecimal.TEN, "MRCPAGO", "MP_API_EXCEPTION", "Falha no gateway"
+        );
+
+        JsonProcessingException mockException = mock(JsonProcessingException.class);
+        when(objectMapper.writeValueAsString(event)).thenThrow(mockException);
+
+        assertThrows(RuntimeException.class, () -> producer.enviarFalhaPagamento(event));
+        verifyNoInteractions(sqsTemplate);
     }
 }

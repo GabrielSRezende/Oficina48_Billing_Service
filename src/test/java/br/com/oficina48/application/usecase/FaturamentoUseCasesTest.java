@@ -238,6 +238,93 @@ class FaturamentoUseCasesTest {
     }
 
     @Test
+    @DisplayName("Confirmar Pagamento - Deve marcar como falhado quando status for cancelled")
+    void deveMarcarComoFalhadoQuandoCancelado() {
+        ChargeStatus status = ChargeStatus.builder()
+                .status("cancelled")
+                .paid(false)
+                .details("cancelled_by_provider")
+                .externalReference("1")
+                .transactionId("mp-12345")
+                .build();
+
+        Faturamento faturamento = Faturamento.builder()
+                .ordemServicoId(1L)
+                .sagaId("saga-1")
+                .valor(BigDecimal.valueOf(150.00))
+                .status(FaturamentoStatus.PENDENTE)
+                .pagamentoId("mp-12345")
+                .build();
+
+        when(bankProvider.checkStatus("mp-12345", null)).thenReturn(status);
+        when(faturamentoRepository.findByPagamentoId("mp-12345")).thenReturn(Optional.of(faturamento));
+
+        confirmarUseCase.confirmarPorMercadoPagoId("mp-12345");
+
+        assertEquals(FaturamentoStatus.FALHOU, faturamento.getStatus());
+        verify(faturamentoRepository).save(faturamento);
+        verify(faturamentoProducer).enviarFaturamentoFalhou(any(FaturamentoFalhouEvent.class));
+    }
+
+    @Test
+    @DisplayName("Confirmar Pagamento - Deve marcar como falhado quando status for refunded")
+    void deveMarcarComoFalhadoQuandoRefunded() {
+        ChargeStatus status = ChargeStatus.builder()
+                .status("refunded")
+                .paid(false)
+                .details("refunded_by_provider")
+                .externalReference("1")
+                .transactionId("mp-12345")
+                .build();
+
+        Faturamento faturamento = Faturamento.builder()
+                .ordemServicoId(1L)
+                .sagaId("saga-1")
+                .valor(BigDecimal.valueOf(150.00))
+                .status(FaturamentoStatus.PENDENTE)
+                .pagamentoId("mp-12345")
+                .build();
+
+        when(bankProvider.checkStatus("mp-12345", null)).thenReturn(status);
+        when(faturamentoRepository.findByPagamentoId("mp-12345")).thenReturn(Optional.of(faturamento));
+
+        confirmarUseCase.confirmarPorMercadoPagoId("mp-12345");
+
+        assertEquals(FaturamentoStatus.FALHOU, faturamento.getStatus());
+        verify(faturamentoRepository).save(faturamento);
+        verify(faturamentoProducer).enviarFaturamentoFalhou(any(FaturamentoFalhouEvent.class));
+    }
+
+    @Test
+    @DisplayName("Confirmar Pagamento - Deve marcar como falhado quando status for charged_back")
+    void deveMarcarComoFalhadoQuandoChargedBack() {
+        ChargeStatus status = ChargeStatus.builder()
+                .status("charged_back")
+                .paid(false)
+                .details("chargeback")
+                .externalReference("1")
+                .transactionId("mp-12345")
+                .build();
+
+        Faturamento faturamento = Faturamento.builder()
+                .ordemServicoId(1L)
+                .sagaId("saga-1")
+                .valor(BigDecimal.valueOf(150.00))
+                .status(FaturamentoStatus.PENDENTE)
+                .pagamentoId("mp-12345")
+                .build();
+
+        when(bankProvider.checkStatus("mp-12345", null)).thenReturn(status);
+        when(faturamentoRepository.findByPagamentoId("mp-12345")).thenReturn(Optional.of(faturamento));
+
+        confirmarUseCase.confirmarPorMercadoPagoId("mp-12345");
+
+        assertEquals(FaturamentoStatus.FALHOU, faturamento.getStatus());
+        verify(faturamentoRepository).save(faturamento);
+        verify(faturamentoProducer).enviarFaturamentoFalhou(any(FaturamentoFalhouEvent.class));
+    }
+
+    @Test
     @DisplayName("Confirmar Pagamento - Deve buscar faturamento por externalReference quando não encontrado por pagamentoId")
     void deveBuscarFaturamentoPorExternalReferenceQuandoNaoEncontradoPorPagamentoId() {
         ChargeStatus status = ChargeStatus.builder()
@@ -383,5 +470,65 @@ class FaturamentoUseCasesTest {
         assertEquals("saga-1", faturamentoExistente.getSagaId());
         assertEquals("mp-12345", faturamentoExistente.getPagamentoId());
         assertEquals(BigDecimal.valueOf(100.00), faturamentoExistente.getValor());
+    }
+
+    @Test
+    @DisplayName("Solicitar Faturamento - Em falha técnica deve atualizar faturamento existente e compensar a saga")
+    void deveAtualizarFaturamentoExistenteQuandoFalhaTecnica() {
+        FaturamentoSolicitadoEvent event = new FaturamentoSolicitadoEvent(
+                1L, "saga-1", BigDecimal.valueOf(150.00), "cliente@email.com", "Cliente Teste", "12345678901", "OS 1 Description"
+        );
+
+        Faturamento faturamentoExistente = Faturamento.builder()
+                .ordemServicoId(1L)
+                .sagaId("saga-old")
+                .valor(BigDecimal.valueOf(100.00))
+                .status(FaturamentoStatus.PENDENTE)
+                .pagamentoId("mp-antigo")
+                .build();
+
+        when(faturamentoRepository.findFirstByOrdemServicoIdOrderByDataCriacaoDesc(1L))
+                .thenReturn(Optional.of(faturamentoExistente));
+        when(bankProvider.createPixCharge(any(ChargeRequest.class)))
+                .thenThrow(new FalhaPagamentoException("MRCPAGO", "MP_API_EXCEPTION", "MP API offline", null));
+
+        solicitarUseCase.executar(event);
+
+        verify(faturamentoRepository).save(faturamentoExistente);
+        assertEquals("saga-1", faturamentoExistente.getSagaId());
+        assertEquals(FaturamentoStatus.FALHOU, faturamentoExistente.getStatus());
+        assertEquals("mp-antigo", faturamentoExistente.getPagamentoId());
+        verify(faturamentoProducer).enviarFaturamentoFalhou(any(FaturamentoFalhouEvent.class));
+        verify(faturamentoProducer).enviarFalhaPagamento(any(FalhaPagamentoEvent.class));
+    }
+
+    @Test
+    @DisplayName("Solicitar Faturamento - Em falha genérica deve atualizar faturamento existente sem publicar falha-pagamento")
+    void deveAtualizarFaturamentoExistenteQuandoFalhaGenerica() {
+        FaturamentoSolicitadoEvent event = new FaturamentoSolicitadoEvent(
+                1L, "saga-1", BigDecimal.valueOf(150.00), "cliente@email.com", "Cliente Teste", "12345678901", "OS 1 Description"
+        );
+
+        Faturamento faturamentoExistente = Faturamento.builder()
+                .ordemServicoId(1L)
+                .sagaId("saga-old")
+                .valor(BigDecimal.valueOf(100.00))
+                .status(FaturamentoStatus.PENDENTE)
+                .pagamentoId("mp-antigo")
+                .build();
+
+        when(faturamentoRepository.findFirstByOrdemServicoIdOrderByDataCriacaoDesc(1L))
+                .thenReturn(Optional.of(faturamentoExistente));
+        when(bankProvider.createPixCharge(any(ChargeRequest.class)))
+                .thenThrow(new RuntimeException("erro generico"));
+
+        solicitarUseCase.executar(event);
+
+        verify(faturamentoRepository).save(faturamentoExistente);
+        assertEquals("saga-1", faturamentoExistente.getSagaId());
+        assertEquals(FaturamentoStatus.FALHOU, faturamentoExistente.getStatus());
+        assertEquals("mp-antigo", faturamentoExistente.getPagamentoId());
+        verify(faturamentoProducer).enviarFaturamentoFalhou(any(FaturamentoFalhouEvent.class));
+        verify(faturamentoProducer, never()).enviarFalhaPagamento(any());
     }
 }
