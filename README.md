@@ -5,6 +5,32 @@ Este microsserviço é responsável pelo processamento de faturamentos e pagamen
 
 ---
 
+## 🐳 Rodando localmente
+
+Este serviço faz parte do ecossistema **Oficina48**, composto por múltiplos microsserviços (OS Service, Billing Service, Execution Service) que se comunicam via SQS (LocalStack) e compartilham a mesma infraestrutura de containers.
+
+Para rodar este serviço **junto com os demais**, utilize o `docker-compose.yml` centralizado no repositório [`Oficina48_InfraKubernetes`](../Oficina48_InfraKubernetes):
+
+```bash
+cd ../Oficina48_InfraKubernetes
+docker compose up --build
+```
+
+> ⚠️ **Não existe um `docker-compose.yml` de execução isolada neste repositório.** O compose do `Oficina48_InfraKubernetes` espera que este repositório esteja clonado como uma pasta irmã (`../Oficina48_OS_Service`, `../Oficina48_Billing_Service`, `../Oficina48_Execution_Service`), pois o `build.context` de cada serviço referencia esse caminho relativo.
+
+**Estrutura de pastas esperada:**
+```
+Projetos/
+├── Oficina48_InfraKubernetes/   ← contém o docker-compose.yml
+├── Oficina48_OS_Service/
+├── Oficina48_Billing_Service/
+└── Oficina48_Execution_Service/
+```
+
+Após subir, este serviço estará disponível em `http://localhost:<PORTA>`.
+
+---
+
 ## 📋 Referência das Filas SQS
 
 O microsserviço utiliza as seguintes filas SQS para a integração de eventos:

@@ -1,10 +1,12 @@
 package br.com.oficina48.infrastructure.messaging.producer;
 
 import br.com.oficina48.infrastructure.messaging.EventMapper;
+import br.com.oficina48.infrastructure.messaging.event.FalhaPagamentoEvent;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoConcluidoEvent;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoFalhouEvent;
 import br.com.oficina48.infrastructure.messaging.event.FaturamentoPendenteEvent;
 import br.com.oficina48.infrastructure.properties.SqsProperties;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.awspring.cloud.sqs.operations.SqsTemplate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,8 +29,6 @@ class FaturamentoProducerTest {
     private SqsTemplate sqsTemplate;
 
     @Mock
-    private EventMapper eventMapper;
-
     private EventMapper eventMapper;
 
     private SqsProperties sqsProperties;
@@ -135,7 +135,7 @@ class FaturamentoProducerTest {
                 1L, "saga-1", BigDecimal.TEN, "MRCPAGO", "MP_API_EXCEPTION", "Falha no gateway"
         );
 
-        when(objectMapper.writeValueAsString(event)).thenReturn("{\"sagaId\":\"saga-1\"}");
+        when(eventMapper.toJson(event)).thenReturn("{\"sagaId\":\"saga-1\"}");
 
         producer.enviarFalhaPagamento(event);
 
@@ -150,7 +150,7 @@ class FaturamentoProducerTest {
         );
 
         JsonProcessingException mockException = mock(JsonProcessingException.class);
-        when(objectMapper.writeValueAsString(event)).thenThrow(mockException);
+        when(eventMapper.toJson(event)).thenThrow(new RuntimeException("Erro ao serializar"));
 
         assertThrows(RuntimeException.class, () -> producer.enviarFalhaPagamento(event));
         verifyNoInteractions(sqsTemplate);
